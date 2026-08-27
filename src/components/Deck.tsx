@@ -8,6 +8,8 @@ interface DeckProps {
   isHost?: boolean
   /** Resolves with the number of players that failed to clear (0 = clean). */
   onClearRound?: () => Promise<number>
+  /** Swedish line shown when the deck is no longer driving the room. */
+  hostNotice?: string | null
 }
 
 /** How long an armed confirm stays armed before it quietly disarms itself. */
@@ -17,7 +19,7 @@ const CONFIRM_WINDOW_MS = 5000
  * The frame every slide lives in: edge navigation, progress rail and the
  * position counter. The slides animate their own contents.
  */
-export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps) {
+export function Deck({ nav, children, isHost = false, onClearRound, hostNotice }: DeckProps) {
   const progress = nav.index / (nav.total - 1)
   const { isFullscreen, toggle } = useFullscreen()
   const [armedIndex, setArmedIndex] = useState<number | null>(null)
@@ -53,7 +55,7 @@ export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps)
 
   // The reset now moves the deck to the cover itself, so the outcome has to
   // outlive that move; it is cleared when the next reset is armed instead.
-  const showsAlert = resetIssue !== null
+  const showsAlert = Boolean(hostNotice) || resetIssue !== null
 
   return (
     <div className="deck" data-direction={nav.direction} data-cover={nav.index === 0}>
@@ -117,6 +119,11 @@ export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps)
           >
             {confirming ? 'Säker? Alla svar försvinner' : (resetIssue ?? 'Nollställ omgången')}
           </button>
+        )}
+        {hostNotice && (
+          <span className="micro deck__host-notice" role="status">
+            {hostNotice}
+          </span>
         )}
       </footer>
     </div>

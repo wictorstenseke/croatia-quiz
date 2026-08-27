@@ -940,3 +940,9 @@ img {
   opacity: 1;
   color: #9d2b2b;
 }
+
+/* The projector keeps moving whether or not the phones still follow, so this
+   one stays visible without a hover. */
+.deck__host-notice {
+  color: #9d2b2b;
+}

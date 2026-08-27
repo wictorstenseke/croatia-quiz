@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { questions } from './data/quiz'
 import { asset } from './lib/asset'
 import { useSlideNav } from './hooks/useSlideNav'
-import { useHost } from './hooks/useHost'
+import { useHost, type HostStatus } from './hooks/useHost'
 import { usePlayers } from './hooks/usePlayers'
 import { leaderboard } from './lib/scoring'
 import { BONUS_QUESTION_ID, slideToSession } from './lib/session'
@@ -27,6 +27,13 @@ const BONUS_PHOTO = {
 /** Which answers the presenter has uncovered, keyed by question id (bonus uses BONUS_QUESTION_ID). */
 type Revealed = Record<string, true>
 
+/** What the presenter is told when the deck is not driving the room. */
+function hostNoticeFor(status: HostStatus): string | null {
+  if (status === 'refused') return 'Värdnyckeln gick inte igenom — telefonerna följer inte däcket'
+  if (status === 'lost') return 'Värdplatsen är tagen av en annan flik — telefonerna följer inte däcket'
+  return null
+}
+
 export default function App() {
   const nav = useSlideNav(TOTAL_SLIDES)
   const { go } = nav
@@ -39,7 +46,7 @@ export default function App() {
   const question = nav.index >= 1 && nav.index <= questions.length ? questions[nav.index - 1] : null
   const photo = question ? question.part : nav.index === BONUS_INDEX ? BONUS_PHOTO : null
 
-  const { isHost, publish, clearRound } = useHost()
+  const { isHost, status, publish, clearRound } = useHost()
   const target = slideToSession(nav.index, false)
   // The roster is only on screen on the facit slide. Subscribing earlier turns
   // every answer from every phone into a read here too, for no visible gain.
@@ -76,7 +83,7 @@ export default function App() {
   }, [resetRound])
 
   return (
-    <Deck nav={nav} isHost={isHost} onClearRound={resetRound}>
+    <Deck nav={nav} isHost={isHost} onClearRound={resetRound} hostNotice={hostNoticeFor(status)}>
       {nav.index === 0 && <Cover onStart={nav.next} showJoinCode={isHost} />}
 
       {photo && (
