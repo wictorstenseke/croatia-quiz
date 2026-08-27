@@ -7,6 +7,7 @@ import {
 } from '@firebase/rules-unit-testing'
 import {
   FieldPath,
+  deleteDoc,
   doc,
   getDoc,
   serverTimestamp,
@@ -15,7 +16,7 @@ import {
 } from 'firebase/firestore'
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
 
-const HOST_KEY = 'test-key-not-the-real-one'
+const HOST_KEY = 'test-key-not-the-real-one-0123456789'
 let testEnv: RulesTestEnvironment
 
 beforeAll(async () => {
@@ -87,6 +88,40 @@ describe('the host seat', () => {
       setDoc(doc(second, 'control/host'), { uid: 'host-laptop', key: HOST_KEY }),
     )
   })
+
+  it('refuses a key shorter than 32 characters, even if it matches the secret', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'control/secret'), { key: 'short-key' })
+    })
+    const db = testEnv.authenticatedContext('host').firestore()
+    await assertFails(setDoc(doc(db, 'control/host'), { uid: 'host', key: 'short-key' }))
+  })
+
+  it('does not let a client read the host record', async () => {
+    await claimHost()
+    const db = testEnv.authenticatedContext('nosy').firestore()
+    await assertFails(getDoc(doc(db, 'control/host')))
+  })
+
+  it('cannot be deleted, so the seat cannot be stolen by resetting it', async () => {
+    await claimHost()
+    const db = testEnv.authenticatedContext('nosy').firestore()
+    await assertFails(deleteDoc(doc(db, 'control/host')))
+  })
+})
+
+describe('the bootstrap door', () => {
+  it('is shut even when the secret is missing', async () => {
+    await testEnv.clearFirestore()
+    const db = testEnv.authenticatedContext('anyone').firestore()
+    await assertFails(setDoc(doc(db, 'control/secret'), { key: 'x'.repeat(32) }))
+  })
+
+  it('is shut for an unauthenticated client too', async () => {
+    await testEnv.clearFirestore()
+    const db = testEnv.unauthenticatedContext().firestore()
+    await assertFails(setDoc(doc(db, 'control/secret'), { key: 'x'.repeat(32) }))
+  })
 })
 
 describe('the session', () => {
@@ -133,6 +168,43 @@ describe('joining', () => {
     await joinAs('p1')
     const other = testEnv.authenticatedContext('p2').firestore()
     await assertFails(updateDoc(doc(other, 'players/p1'), { name: 'Kapad' }))
+  })
+
+  it('rejects a name longer than 40 characters', async () => {
+    const db = testEnv.authenticatedContext('p1').firestore()
+    await assertFails(
+      setDoc(doc(db, 'players/p1'), {
+        name: 'x'.repeat(41),
+        answers: {},
+        joinedAt: serverTimestamp(),
+      }),
+    )
+  })
+
+  it('rejects joinedAt forged as a client timestamp instead of serverTimestamp()', async () => {
+    const db = testEnv.authenticatedContext('p1').firestore()
+    await assertFails(
+      setDoc(doc(db, 'players/p1'), { name: 'Anna', answers: {}, joinedAt: new Date() }),
+    )
+  })
+
+  it('rejects an extra field on create', async () => {
+    const db = testEnv.authenticatedContext('p1').firestore()
+    await assertFails(
+      setDoc(doc(db, 'players/p1'), {
+        name: 'Anna',
+        answers: {},
+        joinedAt: serverTimestamp(),
+        score: 9999,
+      }),
+    )
+  })
+
+  it('cannot be done by an unauthenticated client', async () => {
+    const db = testEnv.unauthenticatedContext().firestore()
+    await assertFails(
+      setDoc(doc(db, 'players/p1'), { name: 'Anna', answers: {}, joinedAt: serverTimestamp() }),
+    )
   })
 })
 
@@ -182,6 +254,14 @@ describe('answering', () => {
       updateDoc(doc(db, 'players/p1'), new FieldPath('answers', 'bonus'), 'Zivjeli'),
     )
   })
+
+  it('refuses an answer longer than 60 characters', async () => {
+    const db = await joinAs('p1')
+    await setLive('question', '01', false)
+    await assertFails(
+      updateDoc(doc(db, 'players/p1'), new FieldPath('answers', '01'), 'x'.repeat(61)),
+    )
+  })
 })
 
 describe('the name', () => {
@@ -197,6 +277,34 @@ describe('the name', () => {
     await assertFails(
       updateDoc(doc(db, 'players/p1'), { name: 'Berit', answers: { '01': 'A' } }),
     )
+  })
+
+  it('rejects a rename longer than 40 characters', async () => {
+    const db = await joinAs('p1')
+    await setLive('leaderboard', null, true)
+    await assertFails(updateDoc(doc(db, 'players/p1'), { name: 'x'.repeat(41) }))
+  })
+})
+
+describe('other updates', () => {
+  it('rejects an extra top-level field, such as a forged score', async () => {
+    const db = await joinAs('p1')
+    await setLive('leaderboard', null, true)
+    await assertFails(updateDoc(doc(db, 'players/p1'), { score: 9999 }))
+  })
+})
+
+describe('removing a player', () => {
+  it('cannot be done by another player', async () => {
+    await joinAs('p1')
+    const other = testEnv.authenticatedContext('p2').firestore()
+    await assertFails(deleteDoc(doc(other, 'players/p1')))
+  })
+
+  it('can be done by the host', async () => {
+    await joinAs('p1')
+    const db = await claimHost()
+    await assertSucceeds(deleteDoc(doc(db, 'players/p1')))
   })
 })
 

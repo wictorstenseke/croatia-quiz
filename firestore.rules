@@ -12,10 +12,8 @@ service cloud.firestore {
     }
 
     function isHost() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/control/host)
-        && request.auth.uid ==
-             get(/databases/$(database)/documents/control/host).data.uid;
+      let host = get(/databases/$(database)/documents/control/host);
+      return request.auth != null && host != null && host.data.uid == request.auth.uid;
     }
 
     function validName(name) {
@@ -34,38 +32,46 @@ service cloud.firestore {
     // The phase check comes first on purpose: outside the question phase
     // questionId is null, and && short-circuits before anything looks it up.
     function isAnswerForOpenQuestion() {
-      return live().phase == 'question'
-        && live().revealed == false
+      let session = live();
+      let answers = request.resource.data.answers;
+      return session.phase == 'question'
+        && session.revealed == false
         && changedFields().hasOnly(['answers'])
-        && request.resource.data.answers
-             .diff(resource.data.answers).affectedKeys()
-             .hasOnly([live().questionId])
-        && live().questionId in request.resource.data.answers
-        && request.resource.data.answers[live().questionId] is string
-        && request.resource.data.answers[live().questionId].size() <= 60;
+        && answers.diff(resource.data.answers).affectedKeys().hasOnly([session.questionId])
+        && session.questionId in answers
+        && answers[session.questionId] is string
+        && answers[session.questionId].size() <= 60;
     }
 
-    // Nothing under /control is readable or writable by a client…
-    match /control/{doc} {
-      allow read, write: if false;
-    }
+    // Nothing under /control is readable or writable by a client: rules are
+    // default-deny, so the absence of a grant is the rule. The two matches
+    // below are the only grants that exist for anything under /control.
 
-    // …except one write of the secret, which closes the door behind itself.
+    // The secret is planted out of band, once, before the app goes live.
+    // No client may ever create, update, or delete it.
     match /control/secret {
-      allow create: if !exists(/databases/$(database)/documents/control/secret);
+      allow create: if false;
     }
 
-    // …and taking the host seat, which requires the key.
+    // Taking the host seat requires the key, and the key must carry real
+    // entropy — a short key would make guess-and-check through the rules
+    // engine feasible.
     match /control/host {
       allow create, update: if request.auth != null
         && request.resource.data.keys().hasOnly(['uid', 'key'])
         && request.resource.data.uid == request.auth.uid
+        && request.resource.data.key is string
+        && request.resource.data.key.size() >= 32
         && request.resource.data.key == hostKey();
     }
 
     match /session/live {
       allow read: if true;
-      allow write: if isHost();
+      allow create, update: if isHost()
+        && request.resource.data.keys().hasOnly(['phase', 'questionId', 'revealed', 'updatedAt'])
+        && request.resource.data.phase in ['lobby', 'question', 'leaderboard']
+        && request.resource.data.revealed is bool;
+      allow delete: if false;
     }
 
     match /players/{uid} {
