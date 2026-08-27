@@ -1,5 +1,11 @@
-// Writes the host key exactly once. The rule that allows this only fires while
-// the document is missing, so running it a second time is refused by design.
+// Writes the host key to control/secret.
+//
+// The door this script used to walk through is shut: the deployed rules say
+// `allow create: if false` for that document, so running this against them can
+// only fail with permission-denied. It is now one step inside the manual
+// rotation procedure — open the rule, delete the old document, run this, close
+// the rule again — written down under "Värdnyckeln" in README.md. Read that
+// first; running the script on its own does nothing but print an error.
 import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import { initializeApp } from 'firebase/app'
