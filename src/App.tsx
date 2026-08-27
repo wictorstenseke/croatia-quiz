@@ -39,8 +39,10 @@ export default function App() {
   const photo = question ? question.part : nav.index === BONUS_INDEX ? BONUS_PHOTO : null
 
   const { isHost, publish, clearRound } = useHost()
-  const players = usePlayers()
   const target = slideToSession(nav.index, false)
+  // The roster is only on screen on the facit slide. Subscribing earlier turns
+  // every answer from every phone into a read here too, for no visible gain.
+  const players = usePlayers(target.phase === 'leaderboard')
   const targetRevealed = target.questionId
     ? Boolean(revealed[target.questionId])
     : target.revealed

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { bonus, questions, type Choice } from '../data/quiz'
 import { BONUS_QUESTION_ID, type LiveSession } from '../lib/session'
 import { leaderboard, type PlayerRecord, type Standing } from '../lib/scoring'
@@ -110,6 +111,12 @@ function optionState(
   return 'muted'
 }
 
+/**
+ * Long enough that a typed word costs one write instead of one per letter,
+ * short enough that a hand leaving the phone has already sent.
+ */
+const BONUS_DEBOUNCE_MS = 600
+
 function BonusAnswer({
   value,
   revealed,
@@ -119,6 +126,36 @@ function BonusAnswer({
   revealed: boolean
   onAnswer: (value: string) => void
 }) {
+  // What the person is typing, held locally so every keystroke paints at once
+  // without a write behind it. `sent` is the last value we handed to onAnswer,
+  // which is what the record should be echoing back; the record staying the
+  // source of truth means anything else it says — a refused write reverting —
+  // is adopted here, in render, before the stale draft can paint.
+  const [draft, setDraft] = useState(value)
+  const [sent, setSent] = useState(value)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  if (value !== sent) {
+    setSent(value)
+    setDraft(value)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current)
+    }
+  }, [])
+
+  function onType(next: string) {
+    setDraft(next)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => {
+      timer.current = null
+      setSent(next)
+      onAnswer(next)
+    }, BONUS_DEBOUNCE_MS)
+  }
+
   return (
     <section className="audience">
       <p className="micro">Bonusfråga · 2 poäng</p>
@@ -126,8 +163,8 @@ function BonusAnswer({
 
       <input
         className="audience__input"
-        value={value}
-        onChange={(event) => onAnswer(event.target.value)}
+        value={draft}
+        onChange={(event) => onType(event.target.value)}
         placeholder="Skriv ditt svar"
         maxLength={60}
         autoComplete="off"

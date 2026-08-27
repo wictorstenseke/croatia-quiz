@@ -16,7 +16,11 @@ function isPermissionDenied(error: unknown): boolean {
 
 export function Audience() {
   const session = useLiveSession()
-  const players = usePlayers()
+  // The whole collection is only needed for the lobby count and the standings.
+  // Holding the listener open through the question phase turns every player's
+  // write into a read on every phone — quadratic, and the round runs on the
+  // free quota.
+  const players = usePlayers(session.phase !== 'question')
   const { uid, name, answers, join, answer } = usePlayer()
   const [joinError, setJoinError] = useState<string | null>(null)
   const [answerNotice, setAnswerNotice] = useState<string | null>(null)
