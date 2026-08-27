@@ -133,11 +133,12 @@ service cloud.firestore {
 
     function isAnswerForOpenQuestion() {
       return live().phase == 'question'
+        && live().revealed == false
         && changedFields().hasOnly(['answers'])
         && request.resource.data.answers
              .diff(resource.data.answers).affectedKeys()
              .hasOnly([live().questionId])
-        && live().revealed == false
+        && live().questionId in request.resource.data.answers
         && request.resource.data.answers[live().questionId] is string
         && request.resource.data.answers[live().questionId].size() <= 60;
     }
@@ -200,7 +201,9 @@ service cloud.firestore {
 
 Villkoret `live().phase == 'question'` står först med flit. Utanför frågefasen
 är `questionId` `null`, och `&&` kortsluter innan någon regel försöker slå upp
-en nyckel som inte finns.
+en nyckel som inte finns. Av samma skäl står `in`-kontrollen före indexeringen:
+raderas ett svar hamnar nyckeln i `affectedKeys()` men saknas i den nya datan,
+och uppslaget hade blivit ett utvärderingsfel i stället för ett rent avslag.
 
 Facit ligger i paketet och går att läsa i devtools. Det som skyddas är att ett
 svar måste vara skrivet innan avslöjandet — för ett sällskapsquiz är det den
