@@ -138,6 +138,36 @@ describe('the session', () => {
       setDoc(doc(db, 'session/live'), { phase: 'question', questionId: '15', revealed: true }),
     )
   })
+
+  it('refuses a host write with an extra field', async () => {
+    const db = await claimHost()
+    await assertFails(
+      setDoc(doc(db, 'session/live'), {
+        phase: 'question',
+        questionId: '01',
+        revealed: false,
+        extra: true,
+      }),
+    )
+  })
+
+  it('cannot be deleted by the host', async () => {
+    const db = await claimHost()
+    await setLive('question', '01', false)
+    await assertFails(deleteDoc(doc(db, 'session/live')))
+  })
+
+  it('accepts the exact production shape from the host', async () => {
+    const db = await claimHost()
+    await assertSucceeds(
+      setDoc(doc(db, 'session/live'), {
+        phase: 'question',
+        questionId: '01',
+        revealed: false,
+        updatedAt: serverTimestamp(),
+      }),
+    )
+  })
 })
 
 describe('joining', () => {
