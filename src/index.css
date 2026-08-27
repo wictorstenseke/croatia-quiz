@@ -740,6 +740,33 @@ img {
   color: #9d2b2b;
 }
 
+/*
+ * A near-miss, not a failure: the write was refused and Firestore already
+ * reverted the tap on its own, so this only explains the revert. Floats near
+ * the bottom of the screen — close to the alternatives in this centered,
+ * mobile-first layout — rather than shifting any of the audience's content.
+ */
+.audience__notice {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(1.25rem, 5vw, 2.5rem);
+  transform: translateX(-50%);
+  z-index: 1;
+  margin: 0;
+  max-width: calc(100% - 2 * clamp(1.5rem, 6vw, 3rem));
+  padding: 0.7rem 1.15rem;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  animation: rise 0.3s var(--ease) both;
+}
+
 .standings {
   display: grid;
   gap: 0;
