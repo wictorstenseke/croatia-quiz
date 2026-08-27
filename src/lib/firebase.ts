@@ -14,17 +14,18 @@ export const auth = getAuth(app)
  */
 export function ensureSignedIn(): Promise<User> {
   return new Promise((resolve, reject) => {
-    const stop = onAuthStateChanged(
-      auth,
-      (user) => {
-        if (user) {
-          stop()
-          resolve(user)
-          return
-        }
-        signInAnonymously(auth).catch(reject)
-      },
-      reject,
-    )
+    // onAuthStateChanged's error callback never fires in this SDK version, so
+    // the only failure route is signInAnonymously rejecting.
+    const stop = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        stop()
+        resolve(user)
+        return
+      }
+      signInAnonymously(auth).catch((error) => {
+        stop()
+        reject(error)
+      })
+    })
   })
 }
