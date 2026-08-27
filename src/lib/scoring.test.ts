@@ -26,6 +26,15 @@ describe('levenshtein', () => {
   it('is symmetric', () => {
     expect(levenshtein('ziv', 'zivjeli')).toBe(levenshtein('zivjeli', 'ziv'))
   })
+
+  it('counts a substituted letter as one edit', () => {
+    expect(levenshtein('zivjeli', 'zivjelo')).toBe(1)
+    expect(levenshtein('cat', 'bat')).toBe(1)
+  })
+
+  it('counts a substitution and an insertion together', () => {
+    expect(levenshtein('kitten', 'sitting')).toBe(3)
+  })
 })
 
 describe('bonusPoints', () => {
