@@ -113,9 +113,11 @@ function optionState(
 
 /**
  * Long enough that a typed word costs one write instead of one per letter,
- * short enough that a hand leaving the phone has already sent.
+ * short enough that little is ever owed: anything still pending when the slide
+ * changes is flushed rather than dropped, and this is the width of the window
+ * in which that flush can be refused.
  */
-const BONUS_DEBOUNCE_MS = 600
+const BONUS_DEBOUNCE_MS = 300
 
 function BonusAnswer({
   value,
@@ -134,16 +136,30 @@ function BonusAnswer({
   const [draft, setDraft] = useState(value)
   const [sent, setSent] = useState(value)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flush = useRef<() => void>(() => {})
 
   if (value !== sent) {
     setSent(value)
     setDraft(value)
   }
 
+  // Refreshed every render so the cleanup below, which is registered once, can
+  // still reach the current draft and the current onAnswer.
   useEffect(() => {
-    return () => {
-      if (timer.current) clearTimeout(timer.current)
+    flush.current = () => {
+      if (!timer.current) return
+      clearTimeout(timer.current)
+      timer.current = null
+      onAnswer(draft)
     }
+  })
+
+  // The presenter moving off the bonus slide unmounts this. Send what is owed
+  // instead of discarding it: two points the person believes they have already
+  // given. A flush the rules refuse reverts and explains itself the same way
+  // any late answer does.
+  useEffect(() => {
+    return () => flush.current()
   }, [])
 
   function onType(next: string) {
