@@ -127,7 +127,11 @@ img {
   letter-spacing: 0;
 }
 
-.deck[data-cover='true'] .deck__footer {
+/* The cover hides the footer — unless it is carrying something the presenter
+   has to see (a lost host seat, a reset that did not go through). A reset now
+   ends on the cover, so hiding it there unconditionally would swallow its own
+   report. */
+.deck[data-cover='true'] .deck__footer[data-alert='false'] {
   /* opacity alone still leaves the buttons hit-testable — pointer-events: auto
      on .deck__fullscreen/.deck__reset would resurrect them under an invisible
      click. visibility: hidden removes descendants from hit-testing outright. */

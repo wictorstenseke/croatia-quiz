@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { SlideNav } from '../hooks/useSlideNav'
 import { useFullscreen } from '../hooks/useFullscreen'
 
@@ -20,34 +20,40 @@ const CONFIRM_WINDOW_MS = 5000
 export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps) {
   const progress = nav.index / (nav.total - 1)
   const { isFullscreen, toggle } = useFullscreen()
-  const [confirming, setConfirming] = useState(false)
-  const [resetIssue, setResetIssue] = useState<number | null>(null)
+  const [armedIndex, setArmedIndex] = useState<number | null>(null)
+  const [resetIssue, setResetIssue] = useState<string | null>(null)
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Moving to another slide always cancels a pending confirm: the confirm is
+  // tied to the slide it was armed on, and comparing during render means no
+  // frame can ever commit with it still armed somewhere else. (React's
+  // "adjusting state when a prop changes" pattern — an effect would paint the
+  // armed state on the new slide first, and this is guarding a delete.)
+  if (armedIndex !== null && armedIndex !== nav.index) setArmedIndex(null)
+  const confirming = armedIndex === nav.index
 
   // Safari never focuses a <button> on a mouse click, so onBlur alone cannot be
   // trusted to disarm the confirm. A bounded timer is the real safety net; blur
-  // stays wired up too, since it is harmless wherever it does fire.
-  const disarmConfirm = useCallback(() => {
+  // stays wired up too, since it is harmless wherever it does fire. A timer
+  // outliving its arming is harmless as well — arming clears the previous one,
+  // so a late fire can only null out something already null.
+  function disarmConfirm() {
     if (confirmTimer.current) {
       clearTimeout(confirmTimer.current)
       confirmTimer.current = null
     }
-    setConfirming(false)
-  }, [])
-
-  // Moving to another slide always cancels a pending confirm and clears any
-  // leftover status from a previous attempt — nothing stale should follow the
-  // presenter around the deck.
-  useEffect(() => {
-    disarmConfirm()
-    setResetIssue(null)
-  }, [nav.index, disarmConfirm])
+    setArmedIndex(null)
+  }
 
   useEffect(() => {
     return () => {
       if (confirmTimer.current) clearTimeout(confirmTimer.current)
     }
   }, [])
+
+  // The reset now moves the deck to the cover itself, so the outcome has to
+  // outlive that move; it is cleared when the next reset is armed instead.
+  const showsAlert = resetIssue !== null
 
   return (
     <div className="deck" data-direction={nav.direction} data-cover={nav.index === 0}>
@@ -77,7 +83,7 @@ export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps)
         <Chevron dir="right" />
       </button>
 
-      <footer className="deck__footer">
+      <footer className="deck__footer" data-alert={showsAlert}>
         <span className="micro">
           {String(nav.index).padStart(2, '0')} / {String(nav.total - 1).padStart(2, '0')}
         </span>
@@ -93,22 +99,23 @@ export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps)
             onClick={() => {
               if (!confirming) {
                 setResetIssue(null)
-                setConfirming(true)
+                setArmedIndex(nav.index)
+                if (confirmTimer.current) clearTimeout(confirmTimer.current)
                 confirmTimer.current = setTimeout(disarmConfirm, CONFIRM_WINDOW_MS)
                 return
               }
               disarmConfirm()
-              void onClearRound().then((failed) => {
-                setResetIssue(failed > 0 ? failed : null)
-              })
+              void onClearRound()
+                .then((failed) => {
+                  setResetIssue(failed > 0 ? `${failed} spelare kunde inte rensas` : null)
+                })
+                .catch(() => {
+                  setResetIssue('Nollställningen gick inte igenom')
+                })
             }}
             onBlur={disarmConfirm}
           >
-            {confirming
-              ? 'Säker? Alla svar försvinner'
-              : resetIssue !== null
-                ? `${resetIssue} spelare kunde inte rensas`
-                : 'Nollställ omgången'}
+            {confirming ? 'Säker? Alla svar försvinner' : (resetIssue ?? 'Nollställ omgången')}
           </button>
         )}
       </footer>

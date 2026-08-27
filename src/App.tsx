@@ -29,6 +29,7 @@ type Revealed = Record<string, true>
 
 export default function App() {
   const nav = useSlideNav(TOTAL_SLIDES)
+  const { go } = nav
   const [revealed, setRevealed] = useState<Revealed>({})
 
   const reveal = useCallback((id: string) => {
@@ -52,8 +53,30 @@ export default function App() {
     publish(slideToSession(nav.index, targetRevealed))
   }, [isHost, nav.index, targetRevealed, publish])
 
+  /**
+   * One reset, whole. Clearing the players without clearing `revealed` and the
+   * slide index left the deck republishing `revealed: true` for every question
+   * the moment the presenter walked back — a fresh round already open to the
+   * audience. Both reset buttons run this.
+   */
+  const resetRound = useCallback(async () => {
+    try {
+      return await clearRound()
+    } finally {
+      // In a finally: a refused delete must not leave the deck sitting on a
+      // stale slide with the old reveals still armed.
+      setRevealed({})
+      go(0)
+    }
+  }, [clearRound, go])
+
+  // The facit button has nowhere to report a failure — the footer reset does.
+  const restart = useCallback(() => {
+    resetRound().catch(() => undefined)
+  }, [resetRound])
+
   return (
-    <Deck nav={nav} isHost={isHost} onClearRound={clearRound}>
+    <Deck nav={nav} isHost={isHost} onClearRound={resetRound}>
       {nav.index === 0 && <Cover onStart={nav.next} showJoinCode={isHost} />}
 
       {photo && (
@@ -78,13 +101,7 @@ export default function App() {
       )}
 
       {nav.index === FACIT_INDEX && (
-        <ResultSlide
-          standings={leaderboard(players)}
-          onRestart={() => {
-            setRevealed({})
-            nav.go(0)
-          }}
-        />
+        <ResultSlide standings={leaderboard(players)} onRestart={restart} />
       )}
     </Deck>
   )
