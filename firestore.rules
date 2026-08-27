@@ -1,0 +1,88 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function live() {
+      return get(/databases/$(database)/documents/session/live).data;
+    }
+
+    function hostKey() {
+      return get(/databases/$(database)/documents/control/secret).data.key;
+    }
+
+    function isHost() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/control/host)
+        && request.auth.uid ==
+             get(/databases/$(database)/documents/control/host).data.uid;
+    }
+
+    function validName(name) {
+      return name is string && name.size() >= 1 && name.size() <= 40;
+    }
+
+    function changedFields() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function isNameEdit() {
+      return changedFields().hasOnly(['name'])
+        && validName(request.resource.data.name);
+    }
+
+    // The phase check comes first on purpose: outside the question phase
+    // questionId is null, and && short-circuits before anything looks it up.
+    function isAnswerForOpenQuestion() {
+      return live().phase == 'question'
+        && live().revealed == false
+        && changedFields().hasOnly(['answers'])
+        && request.resource.data.answers
+             .diff(resource.data.answers).affectedKeys()
+             .hasOnly([live().questionId])
+        && live().questionId in request.resource.data.answers
+        && request.resource.data.answers[live().questionId] is string
+        && request.resource.data.answers[live().questionId].size() <= 60;
+    }
+
+    // Nothing under /control is readable or writable by a client…
+    match /control/{doc} {
+      allow read, write: if false;
+    }
+
+    // …except one write of the secret, which closes the door behind itself.
+    match /control/secret {
+      allow create: if !exists(/databases/$(database)/documents/control/secret);
+    }
+
+    // …and taking the host seat, which requires the key.
+    match /control/host {
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid', 'key'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.key == hostKey();
+    }
+
+    match /session/live {
+      allow read: if true;
+      allow write: if isHost();
+    }
+
+    match /players/{uid} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'answers', 'joinedAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.answers.keys().size() == 0
+        && request.resource.data.joinedAt == request.time;
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && (isNameEdit() || isAnswerForOpenQuestion());
+
+      allow delete: if isHost();
+    }
+  }
+}
