@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { questions } from './data/quiz'
 import { asset } from './lib/asset'
 import { useSlideNav } from './hooks/useSlideNav'
+import { useHost } from './hooks/useHost'
+import { BONUS_QUESTION_ID, slideToSession } from './lib/session'
 import { Cover } from './slides/Cover'
 import { QuestionLayout } from './slides/QuestionLayout'
 import { QuestionSlide } from './slides/QuestionSlide'
@@ -20,7 +22,7 @@ const BONUS_PHOTO = {
   caption: 'Adriatiska havet · Två poäng kvar att ta',
 }
 
-/** Which answers the presenter has uncovered, keyed by question id (bonus is "B"). */
+/** Which answers the presenter has uncovered, keyed by question id (bonus uses BONUS_QUESTION_ID). */
 type Revealed = Record<string, true>
 
 export default function App() {
@@ -33,6 +35,17 @@ export default function App() {
 
   const question = nav.index >= 1 && nav.index <= questions.length ? questions[nav.index - 1] : null
   const photo = question ? question.part : nav.index === BONUS_INDEX ? BONUS_PHOTO : null
+
+  const { isHost, publish } = useHost()
+  const target = slideToSession(nav.index, false)
+  const targetRevealed = target.questionId
+    ? Boolean(revealed[target.questionId])
+    : target.revealed
+
+  useEffect(() => {
+    if (!isHost) return
+    publish(slideToSession(nav.index, targetRevealed))
+  }, [isHost, nav.index, targetRevealed, publish])
 
   return (
     <Deck nav={nav}>
@@ -51,8 +64,8 @@ export default function App() {
             />
           ) : (
             <BonusSlide
-              revealed={Boolean(revealed.B)}
-              onReveal={() => reveal('B')}
+              revealed={Boolean(revealed[BONUS_QUESTION_ID])}
+              onReveal={() => reveal(BONUS_QUESTION_ID)}
               onNext={nav.next}
             />
           )}
