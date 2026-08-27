@@ -38,7 +38,7 @@ export default function App() {
   const question = nav.index >= 1 && nav.index <= questions.length ? questions[nav.index - 1] : null
   const photo = question ? question.part : nav.index === BONUS_INDEX ? BONUS_PHOTO : null
 
-  const { isHost, publish } = useHost()
+  const { isHost, publish, clearRound } = useHost()
   const players = usePlayers()
   const target = slideToSession(nav.index, false)
   const targetRevealed = target.questionId
@@ -51,8 +51,8 @@ export default function App() {
   }, [isHost, nav.index, targetRevealed, publish])
 
   return (
-    <Deck nav={nav}>
-      {nav.index === 0 && <Cover onStart={nav.next} />}
+    <Deck nav={nav} isHost={isHost} onClearRound={() => void clearRound()}>
+      {nav.index === 0 && <Cover onStart={nav.next} showJoinCode={isHost} />}
 
       {photo && (
         <QuestionLayout image={photo.image} caption={photo.caption}>

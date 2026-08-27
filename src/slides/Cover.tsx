@@ -1,6 +1,7 @@
 import { asset } from '../lib/asset'
+import { JoinCode } from '../components/JoinCode'
 
-export function Cover({ onStart }: { onStart: () => void }) {
+export function Cover({ onStart, showJoinCode }: { onStart: () => void; showJoinCode: boolean }) {
   return (
     <section className="slide cover">
       <img className="cover__photo" src={asset('img/dubrovnik-aerial.jpg')} alt="" />
@@ -33,6 +34,8 @@ export function Cover({ onStart }: { onStart: () => void }) {
       <p className="micro micro--light cover__footline">
         Adriatiska havet · Perla Jadrana · Livet bakom murarna
       </p>
+
+      {showJoinCode && <JoinCode />}
     </section>
   )
 }

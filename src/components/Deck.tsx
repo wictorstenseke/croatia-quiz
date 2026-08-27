@@ -1,19 +1,22 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { SlideNav } from '../hooks/useSlideNav'
 import { useFullscreen } from '../hooks/useFullscreen'
 
 interface DeckProps {
   nav: SlideNav
   children: ReactNode
+  isHost?: boolean
+  onClearRound?: () => void
 }
 
 /**
  * The frame every slide lives in: edge navigation, progress rail and the
  * position counter. The slides animate their own contents.
  */
-export function Deck({ nav, children }: DeckProps) {
+export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps) {
   const progress = nav.index / (nav.total - 1)
   const { isFullscreen, toggle } = useFullscreen()
+  const [confirming, setConfirming] = useState(false)
 
   return (
     <div className="deck" data-direction={nav.direction} data-cover={nav.index === 0}>
@@ -50,6 +53,24 @@ export function Deck({ nav, children }: DeckProps) {
         <button type="button" className="micro deck__fullscreen" onClick={toggle}>
           <kbd>F</kbd> {isFullscreen ? 'Lämna fullskärm' : 'Fullskärm'}
         </button>
+        {isHost && onClearRound && (
+          <button
+            type="button"
+            className="micro deck__reset"
+            data-confirming={confirming}
+            onClick={() => {
+              if (!confirming) {
+                setConfirming(true)
+                return
+              }
+              setConfirming(false)
+              onClearRound()
+            }}
+            onBlur={() => setConfirming(false)}
+          >
+            {confirming ? 'Säker? Alla svar försvinner' : 'Nollställ omgången'}
+          </button>
+        )}
       </footer>
     </div>
   )
