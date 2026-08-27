@@ -168,6 +168,17 @@ describe('the session', () => {
       }),
     )
   })
+
+  it('refuses a host write with a phase outside the enum', async () => {
+    const db = await claimHost()
+    await assertFails(
+      setDoc(doc(db, 'session/live'), {
+        phase: 'chaos',
+        questionId: '01',
+        revealed: false,
+      }),
+    )
+  })
 })
 
 describe('joining', () => {
