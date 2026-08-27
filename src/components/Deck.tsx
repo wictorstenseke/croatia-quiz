@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { SlideNav } from '../hooks/useSlideNav'
 import { useFullscreen } from '../hooks/useFullscreen'
 
@@ -6,8 +6,12 @@ interface DeckProps {
   nav: SlideNav
   children: ReactNode
   isHost?: boolean
-  onClearRound?: () => void
+  /** Resolves with the number of players that failed to clear (0 = clean). */
+  onClearRound?: () => Promise<number>
 }
+
+/** How long an armed confirm stays armed before it quietly disarms itself. */
+const CONFIRM_WINDOW_MS = 5000
 
 /**
  * The frame every slide lives in: edge navigation, progress rail and the
@@ -17,6 +21,33 @@ export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps)
   const progress = nav.index / (nav.total - 1)
   const { isFullscreen, toggle } = useFullscreen()
   const [confirming, setConfirming] = useState(false)
+  const [resetIssue, setResetIssue] = useState<number | null>(null)
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Safari never focuses a <button> on a mouse click, so onBlur alone cannot be
+  // trusted to disarm the confirm. A bounded timer is the real safety net; blur
+  // stays wired up too, since it is harmless wherever it does fire.
+  const disarmConfirm = useCallback(() => {
+    if (confirmTimer.current) {
+      clearTimeout(confirmTimer.current)
+      confirmTimer.current = null
+    }
+    setConfirming(false)
+  }, [])
+
+  // Moving to another slide always cancels a pending confirm and clears any
+  // leftover status from a previous attempt — nothing stale should follow the
+  // presenter around the deck.
+  useEffect(() => {
+    disarmConfirm()
+    setResetIssue(null)
+  }, [nav.index, disarmConfirm])
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current)
+    }
+  }, [])
 
   return (
     <div className="deck" data-direction={nav.direction} data-cover={nav.index === 0}>
@@ -58,17 +89,26 @@ export function Deck({ nav, children, isHost = false, onClearRound }: DeckProps)
             type="button"
             className="micro deck__reset"
             data-confirming={confirming}
+            data-reset-issue={resetIssue !== null}
             onClick={() => {
               if (!confirming) {
+                setResetIssue(null)
                 setConfirming(true)
+                confirmTimer.current = setTimeout(disarmConfirm, CONFIRM_WINDOW_MS)
                 return
               }
-              setConfirming(false)
-              onClearRound()
+              disarmConfirm()
+              void onClearRound().then((failed) => {
+                setResetIssue(failed > 0 ? failed : null)
+              })
             }}
-            onBlur={() => setConfirming(false)}
+            onBlur={disarmConfirm}
           >
-            {confirming ? 'Säker? Alla svar försvinner' : 'Nollställ omgången'}
+            {confirming
+              ? 'Säker? Alla svar försvinner'
+              : resetIssue !== null
+                ? `${resetIssue} spelare kunde inte rensas`
+                : 'Nollställ omgången'}
           </button>
         )}
       </footer>

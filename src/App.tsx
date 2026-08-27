@@ -51,7 +51,7 @@ export default function App() {
   }, [isHost, nav.index, targetRevealed, publish])
 
   return (
-    <Deck nav={nav} isHost={isHost} onClearRound={() => void clearRound()}>
+    <Deck nav={nav} isHost={isHost} onClearRound={clearRound}>
       {nav.index === 0 && <Cover onStart={nav.next} showJoinCode={isHost} />}
 
       {photo && (

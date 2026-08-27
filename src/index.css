@@ -128,7 +128,11 @@ img {
 }
 
 .deck[data-cover='true'] .deck__footer {
+  /* opacity alone still leaves the buttons hit-testable — pointer-events: auto
+     on .deck__fullscreen/.deck__reset would resurrect them under an invisible
+     click. visibility: hidden removes descendants from hit-testing outright. */
   opacity: 0;
+  visibility: hidden;
 }
 
 /* ── Edge navigation ────────────────────────────────────────── */
@@ -887,6 +891,13 @@ img {
   width: clamp(140px, 14vw, 200px);
 }
 
+.join-code__panel {
+  width: 100%;
+  padding: 0.7rem;
+  background: var(--paper);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
 .join-code__svg svg {
   display: block;
   width: 100%;
@@ -908,7 +919,8 @@ img {
   opacity: 1;
 }
 
-.deck__reset[data-confirming='true'] {
+.deck__reset[data-confirming='true'],
+.deck__reset[data-reset-issue='true'] {
   opacity: 1;
   color: #9d2b2b;
 }

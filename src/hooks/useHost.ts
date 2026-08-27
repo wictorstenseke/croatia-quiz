@@ -18,7 +18,8 @@ function hostKeyFromUrl(): string | null {
 export function useHost(): {
   isHost: boolean
   publish: (session: LiveSession) => void
-  clearRound: () => Promise<void>
+  /** Resolves with the number of players that failed to delete (0 = clean). */
+  clearRound: () => Promise<number>
 } {
   const [isHost, setIsHost] = useState(false)
 
@@ -51,10 +52,14 @@ export function useHost(): {
   )
 
   const clearRound = useCallback(async () => {
-    if (!isHost) return
+    if (!isHost) return 0
     const players = await getDocs(collection(db, 'players'))
-    await Promise.all(players.docs.map((player) => deleteDoc(player.ref)))
+    // allSettled, not all: one player's delete failing must not abandon the rest,
+    // and the session must still return to the lobby below regardless of the count.
+    const results = await Promise.allSettled(players.docs.map((player) => deleteDoc(player.ref)))
+    const failed = results.filter((result) => result.status === 'rejected').length
     await setDoc(doc(db, 'session/live'), { ...IDLE_SESSION, updatedAt: serverTimestamp() })
+    return failed
   }, [isHost])
 
   return { isHost, publish, clearRound }

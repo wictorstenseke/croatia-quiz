@@ -12,10 +12,14 @@ export function JoinCode() {
 
   useEffect(() => {
     let cancelled = false
+    // A 2-module quiet zone and opaque dark-on-paper modules: the code sits over a
+    // drifting, scaling photograph, so contrast can never be left to depend on
+    // whatever happens to be behind it — the panel in the markup below supplies the
+    // paper, this just has to stay legible against it.
     void QRCode.toString(url, {
       type: 'svg',
-      margin: 0,
-      color: { dark: '#ffffff', light: '#00000000' },
+      margin: 2,
+      color: { dark: '#0b0b0b', light: '#ffffff' },
     }).then((markup) => {
       if (!cancelled) setSvg(markup)
     })
@@ -28,7 +32,9 @@ export function JoinCode() {
 
   return (
     <aside className="join-code">
-      <div className="join-code__svg" dangerouslySetInnerHTML={{ __html: svg }} />
+      <div className="join-code__panel">
+        <div className="join-code__svg" dangerouslySetInnerHTML={{ __html: svg }} />
+      </div>
       <p className="micro micro--light">Skanna för att vara med</p>
     </aside>
   )
