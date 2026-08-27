@@ -635,6 +635,153 @@ img {
   justify-self: start;
 }
 
+/* ── Publikvyn ──────────────────────────────────────────────── */
+
+.audience {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100dvh;
+  padding: clamp(1.5rem, 6vw, 3rem);
+  justify-content: center;
+}
+
+.audience--join {
+  justify-content: center;
+}
+
+.audience__title {
+  margin: 0;
+  font-size: clamp(2rem, 9vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.audience__question {
+  margin: 0;
+  font-size: clamp(1.5rem, 6.5vw, 2.25rem);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.audience__lede {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.audience__form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.audience__input {
+  width: 100%;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--rule);
+  background: var(--field);
+  font-size: 1.25rem;
+}
+
+.audience__input:focus {
+  outline: none;
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+/* The audience taps its options; the deck's are only ever read. */
+.option--tappable {
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.option--tappable:disabled {
+  cursor: default;
+}
+
+.option[data-state='selected'] {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+.option[data-state='wrong'] {
+  border-color: #9d2b2b;
+  background: #f8eeee;
+}
+
+.option[data-state='wrong'] .option__label,
+.option[data-state='wrong'] .option__letter {
+  color: #9d2b2b;
+}
+
+.audience__verdict {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--correct);
+}
+
+.audience__verdict[data-correct='false'] {
+  color: #9d2b2b;
+}
+
+.audience__hint {
+  margin: 0;
+}
+
+.audience__error {
+  color: #9d2b2b;
+}
+
+.standings {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--ink);
+}
+
+.standing {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 3rem;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.standing[data-you='true'] {
+  font-weight: 500;
+}
+
+.standing__place,
+.standing__score {
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.standing[data-you='true'] .standing__place,
+.standing[data-you='true'] .standing__score {
+  color: var(--ink);
+}
+
+.standing__name {
+  font-size: 1.125rem;
+}
+
+.standing__score {
+  text-align: right;
+}
+
 /* ── Narrow screens ─────────────────────────────────────────── */
 
 @media (max-width: 900px) {
