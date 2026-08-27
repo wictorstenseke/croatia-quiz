@@ -12,6 +12,20 @@ export const auth = getAuth(app)
  * Everyone gets an anonymous uid — the presenter to hold the host seat, the
  * audience to own their answers. The uid survives reloads on the same browser.
  */
+/**
+ * The rules refusing a write. Everything else the SDK can reject with is a
+ * different story: offline writes are queued rather than rejected, so a
+ * permission-denied is always a deliberate "no" from the rules.
+ */
+export function isPermissionDenied(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'permission-denied'
+  )
+}
+
 export function ensureSignedIn(): Promise<User> {
   return new Promise((resolve, reject) => {
     // onAuthStateChanged's error callback never fires in this SDK version, so

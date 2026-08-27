@@ -744,6 +744,18 @@ img {
   color: #9d2b2b;
 }
 
+.audience__retry {
+  margin-left: 0.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /*
  * A near-miss, not a failure: the write was refused and Firestore already
  * reverted the tap on its own, so this only explains the revert. Floats near

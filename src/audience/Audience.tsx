@@ -1,18 +1,10 @@
 import { useState } from 'react'
+import { isPermissionDenied } from '../lib/firebase'
 import { useLiveSession } from '../hooks/useLiveSession'
 import { usePlayer } from '../hooks/usePlayer'
 import { usePlayers } from '../hooks/usePlayers'
 import { JoinScreen } from './JoinScreen'
 import { PlayScreen } from './PlayScreen'
-
-function isPermissionDenied(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as { code?: unknown }).code === 'permission-denied'
-  )
-}
 
 export function Audience() {
   const session = useLiveSession()
@@ -21,13 +13,14 @@ export function Audience() {
   // write into a read on every phone — quadratic, and the round runs on the
   // free quota.
   const players = usePlayers(session.phase !== 'question')
-  const { uid, name, answers, join, answer } = usePlayer()
+  const { uid, name, answers, signInFailed, retrySignIn, join, answer } = usePlayer()
   const [joinError, setJoinError] = useState<string | null>(null)
   const [answerNotice, setAnswerNotice] = useState<string | null>(null)
   const [noticeQuestionId, setNoticeQuestionId] = useState(session.questionId)
 
-  // join() rejects when two joins race, or when a record appears between the
-  // read and the write. Surface that instead of leaving the button dead.
+  // join() rejects when two joins race, when a record appears between the read
+  // and the write, and when the phone never got signed in at all. Surface that
+  // instead of leaving the button dead.
   function handleJoin(chosen: string) {
     setJoinError(null)
     join(chosen).catch(() => {
@@ -43,7 +36,11 @@ export function Audience() {
   function handleAnswer(questionId: string, value: string) {
     setAnswerNotice(null)
     answer(questionId, value).catch((error: unknown) => {
-      if (isPermissionDenied(error)) setAnswerNotice('Svaret hann stänga.')
+      setAnswerNotice(
+        isPermissionDenied(error)
+          ? 'Svaret hann stänga.'
+          : 'Ingen kontakt med servern. Svaret sparades inte.',
+      )
     })
   }
 
@@ -56,7 +53,19 @@ export function Audience() {
     setAnswerNotice(null)
   }
 
-  if (!name) return <JoinScreen onJoin={handleJoin} error={joinError} />
+  if (!name) {
+    return (
+      <JoinScreen
+        onJoin={handleJoin}
+        error={
+          signInFailed
+            ? 'Ingen kontakt med servern. Kontrollera nätet och försök igen.'
+            : joinError
+        }
+        onRetry={signInFailed ? retrySignIn : null}
+      />
+    )
+  }
 
   return (
     <>

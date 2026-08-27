@@ -4,9 +4,11 @@ interface JoinScreenProps {
   onJoin: (name: string) => void
   /** Set when a previous join attempt failed, e.g. two joins racing. */
   error?: string | null
+  /** Offered next to the error when trying again is the whole remedy. */
+  onRetry?: (() => void) | null
 }
 
-export function JoinScreen({ onJoin, error }: JoinScreenProps) {
+export function JoinScreen({ onJoin, error, onRetry }: JoinScreenProps) {
   const [name, setName] = useState('')
   const trimmed = name.trim()
 
@@ -38,7 +40,16 @@ export function JoinScreen({ onJoin, error }: JoinScreenProps) {
         </button>
       </form>
 
-      {error && <p className="micro audience__error">{error}</p>}
+      {error && (
+        <p className="micro audience__error" role="status">
+          {error}
+          {onRetry && (
+            <button type="button" className="micro audience__retry" onClick={onRetry}>
+              Försök igen
+            </button>
+          )}
+        </p>
+      )}
     </section>
   )
 }
