@@ -42,4 +42,14 @@ describe('slideToSession', () => {
       revealed: true,
     })
   })
+
+  it('returns a fresh object each time, so callers cannot corrupt the default', () => {
+    const first = slideToSession(0, false)
+    first.revealed = true
+    expect(slideToSession(0, false).revealed).toBe(false)
+  })
+
+  it('forces revealed false in the lobby, whatever it is given', () => {
+    expect(slideToSession(0, true).revealed).toBe(false)
+  })
 })

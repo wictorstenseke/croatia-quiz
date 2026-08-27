@@ -22,7 +22,7 @@ export const IDLE_SESSION: LiveSession = {
  * slide index into what the audience should be looking at.
  */
 export function slideToSession(index: number, revealed: boolean): LiveSession {
-  if (index <= 0) return IDLE_SESSION
+  if (index <= 0) return { ...IDLE_SESSION }
   if (index <= questions.length) {
     return { phase: 'question', questionId: questions[index - 1].id, revealed }
   }
