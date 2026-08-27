@@ -1,0 +1,686 @@
+:root {
+  --paper: #ffffff;
+  --ink: #0b0b0b;
+  --ink-soft: #333333;
+  --muted: #6b6b6b;
+  --field: #f2f2f2;
+  --rule: #cfcfcf;
+  --correct: #145c3a;
+  --correct-bg: #e8f1ec;
+
+  --sans: 'Satoshi', 'Helvetica Neue', Helvetica, sans-serif;
+  --mono: 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --gutter: clamp(1.75rem, 4.5vw, 5rem);
+  --question-size: clamp(1.75rem, 2.9vw, 3.125rem);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* ── Deck frame ─────────────────────────────────────────────── */
+
+.deck {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+.deck__rail {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--rule);
+  z-index: 40;
+}
+
+.deck__rail-fill {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transform-origin: left center;
+  transition: transform 0.5s var(--ease);
+}
+
+/* The stage itself never animates — each slide animates its own text. */
+.deck__stage {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.deck__footer {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 var(--gutter) 1.4rem;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.deck__fullscreen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease), color 0.3s var(--ease);
+}
+
+/* Stays out of the way until the pointer comes looking for it. */
+.deck:hover .deck__fullscreen,
+.deck__fullscreen:focus-visible {
+  opacity: 1;
+}
+
+.deck__fullscreen:hover {
+  color: var(--ink);
+}
+
+.deck__fullscreen kbd {
+  display: grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  border: 1px solid currentColor;
+  font: inherit;
+  letter-spacing: 0;
+}
+
+.deck[data-cover='true'] .deck__footer {
+  opacity: 0;
+}
+
+/* ── Edge navigation ────────────────────────────────────────── */
+
+.edge {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: clamp(56px, 7vw, 104px);
+  border: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 35;
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity 0.35s var(--ease), background 0.35s var(--ease);
+}
+
+.edge--prev {
+  left: 0;
+}
+
+.edge--next {
+  right: 0;
+  /* This edge lies over the photo column, so it inverts against whatever is there. */
+  color: #fff;
+  mix-blend-mode: difference;
+}
+
+.edge:hover:not(:disabled),
+.edge:focus-visible {
+  opacity: 1;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.06), transparent);
+}
+
+.edge--next:hover:not(:disabled),
+.edge--next:focus-visible {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.06), transparent);
+}
+
+.edge:disabled {
+  cursor: default;
+}
+
+.edge svg {
+  transition: transform 0.35s var(--ease);
+}
+
+.edge--prev:hover svg {
+  transform: translateX(-4px);
+}
+
+.edge--next:hover svg {
+  transform: translateX(4px);
+}
+
+.deck[data-cover='true'] .edge {
+  color: #fff;
+}
+
+.deck[data-cover='true'] .edge:hover:not(:disabled),
+.deck[data-cover='true'] .edge:focus-visible {
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.28), transparent);
+}
+
+.deck[data-cover='true'] .edge--next:hover:not(:disabled),
+.deck[data-cover='true'] .edge--next:focus-visible {
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.28), transparent);
+}
+
+/* ── Typography atoms ───────────────────────────────────────── */
+
+.micro {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.micro--light {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.rule {
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.85;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.9rem;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease),
+    border-color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--paper);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn:disabled {
+  background: transparent;
+  border-color: var(--rule);
+  color: var(--muted);
+  cursor: default;
+}
+
+.btn:disabled:hover {
+  transform: none;
+}
+
+.btn--light {
+  border-color: rgba(255, 255, 255, 0.9);
+  background: transparent;
+  color: #fff;
+}
+
+.btn--light:hover:not(:disabled) {
+  background: #fff;
+  color: var(--ink);
+}
+
+.stagger {
+  animation: rise 0.6s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 65ms + 60ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+}
+
+/* ── Cover ──────────────────────────────────────────────────── */
+
+.slide {
+  min-height: 100%;
+}
+
+.cover {
+  position: relative;
+  display: grid;
+  align-content: center;
+  padding: var(--gutter);
+  color: #fff;
+  isolation: isolate;
+  /* The drifting photo is scaled past the frame — clip it here. */
+  overflow: hidden;
+}
+
+.cover__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  pointer-events: none;
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.12) translate3d(-1%, -1%, 0);
+  }
+}
+
+.cover__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      100deg,
+      rgba(6, 14, 22, 0.72) 0%,
+      rgba(6, 14, 22, 0.42) 42%,
+      rgba(6, 14, 22, 0.1) 72%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(6, 14, 22, 0.34) 0%,
+      rgba(6, 14, 22, 0.06) 40%,
+      rgba(6, 14, 22, 0.58) 100%
+    );
+}
+
+.cover__body {
+  max-width: 48rem;
+}
+
+.cover__title {
+  margin: 0.6rem 0 1.6rem;
+  font-size: clamp(3.5rem, 11vw, 9.5rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
+}
+
+.cover__lede {
+  margin: 0 0 2.6rem;
+  max-width: 36rem;
+  font-size: clamp(1.125rem, 1.8vw, 1.5rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.94);
+  text-wrap: pretty;
+}
+
+.cover__footline {
+  position: absolute;
+  left: var(--gutter);
+  bottom: calc(var(--gutter) * 0.75);
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  width: min(40rem, calc(100% - var(--gutter) * 2));
+}
+
+/* ── Question slide ─────────────────────────────────────────── */
+
+.question {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(320px, 44vw, 900px);
+  min-height: 100%;
+}
+
+.question__column {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.75rem;
+  padding: calc(var(--gutter) * 1.1) var(--gutter);
+  min-width: 0;
+}
+
+.question__head {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.question__part {
+  margin: 0;
+  font-size: clamp(1.875rem, 3.1vw, 3.25rem);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.question__text {
+  margin: 0;
+  font-size: var(--question-size);
+  font-weight: 400;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.options {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.5rem;
+  padding: 1.1rem 1.5rem;
+  border: 1px solid transparent;
+  background: var(--field);
+  transition: background 0.3s var(--ease), border-color 0.3s var(--ease),
+    color 0.3s var(--ease), opacity 0.3s var(--ease);
+}
+
+.option__letter {
+  flex: none;
+  min-width: 1.75rem;
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  transition: color 0.3s var(--ease);
+}
+
+.option__label {
+  font-size: 1.375rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  transition: color 0.3s var(--ease);
+}
+
+.option[data-state='correct'] {
+  border-color: var(--correct);
+  background: var(--correct-bg);
+}
+
+.option[data-state='correct'] .option__label,
+.option[data-state='correct'] .option__letter {
+  color: var(--correct);
+}
+
+.option[data-state='muted'] {
+  opacity: 0.55;
+}
+
+.question__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.verdict {
+  padding: 1.1rem 0 0.25rem;
+  border-top: 1px solid var(--rule);
+  display: grid;
+  gap: 0.5rem;
+  max-width: 44rem;
+  animation: rise 0.5s var(--ease) both;
+}
+
+.verdict .micro {
+  color: var(--correct);
+}
+
+.verdict__answer {
+  margin: 0;
+  font-size: clamp(1.75rem, 2.4vw, 2.5rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--correct);
+}
+
+.verdict__text {
+  margin: 0;
+  font-size: 1.375rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.question__figure {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+}
+
+.question__figure img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  will-change: transform;
+  animation: photo-zoom 30s ease-in-out infinite alternate;
+}
+
+/*
+ * Pulls back while drifting sideways — the photos are landscape in a tall
+ * frame, so the horizontal travel is the wider of the two. The pan stays
+ * inside the overflow the scale provides, so no edge is ever exposed.
+ */
+@keyframes photo-zoom {
+  from {
+    transform: translate3d(7%, 3%, 0) scale(1.28);
+  }
+  to {
+    transform: translate3d(-3%, -1.5%, 0) scale(1.09);
+  }
+}
+
+/* The captions sit on sky and stone alike, so they get their own ground. */
+.question__figure::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(6, 14, 22, 0) 0%, rgba(6, 14, 22, 0.85) 100%);
+  pointer-events: none;
+}
+
+.question__figure figcaption {
+  position: absolute;
+  z-index: 1;
+  left: 1.75rem;
+  right: 1.75rem;
+  bottom: 1.75rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Result ─────────────────────────────────────────────────── */
+
+.result {
+  display: grid;
+  align-content: start;
+  gap: 2rem;
+  padding: calc(var(--gutter) * 1.2) var(--gutter) calc(var(--gutter) * 1.8);
+  max-width: 76rem;
+  margin: 0 auto;
+}
+
+.result__head {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.result__title {
+  margin: 0;
+  font-size: clamp(2.5rem, 5vw, 4.25rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.facit {
+  border-top: 1px solid var(--ink);
+}
+
+.facit__header,
+.facit__row {
+  display: grid;
+  grid-template-columns: 3.5rem 4rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.facit__header {
+  padding-top: 1rem;
+}
+
+.facit__nr,
+.facit__answer {
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  letter-spacing: 0.1em;
+}
+
+.facit__nr {
+  color: var(--muted);
+}
+
+.facit__explanation {
+  font-size: 1.3125rem;
+  line-height: 1.4;
+}
+
+.result__tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.75rem;
+}
+
+.result__tier-card {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--ink);
+  font-size: 1.1875rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.result__tier-card p {
+  margin: 0;
+}
+
+.result .btn {
+  justify-self: start;
+}
+
+/* ── Narrow screens ─────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .question {
+    grid-template-columns: 1fr;
+  }
+
+  .question__column {
+    order: 2;
+    padding-bottom: 5rem;
+  }
+
+  .question__figure {
+    order: 1;
+    height: 32vh;
+  }
+
+  .question__actions {
+    justify-content: flex-start;
+  }
+
+  .option {
+    min-height: 3.75rem;
+  }
+
+  .option__letter {
+    font-size: 1.25rem;
+    min-width: 1.5rem;
+  }
+
+  .edge {
+    width: 44px;
+  }
+
+  .edge--next {
+    mix-blend-mode: normal;
+    color: var(--ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
