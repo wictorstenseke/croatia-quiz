@@ -1,7 +1,14 @@
 import type { CSSProperties } from 'react'
 import { bonus, questions, tiers } from '../data/quiz'
+import type { Standing } from '../lib/scoring'
+import { Leaderboard } from './Leaderboard'
 
-export function ResultSlide({ onRestart }: { onRestart: () => void }) {
+interface ResultSlideProps {
+  onRestart: () => void
+  standings: Standing[]
+}
+
+export function ResultSlide({ onRestart, standings }: ResultSlideProps) {
   return (
     <section className="slide result">
       <header className="result__head">
@@ -12,6 +19,8 @@ export function ResultSlide({ onRestart }: { onRestart: () => void }) {
           Rätta svar
         </h2>
       </header>
+
+      <Leaderboard standings={standings} />
 
       <div className="facit stagger" style={{ '--i': 2 } as CSSProperties}>
         <div className="facit__header micro">

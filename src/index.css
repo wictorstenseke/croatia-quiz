@@ -858,3 +858,21 @@ img {
     transition-duration: 0.01ms !important;
   }
 }
+
+.deck-standings {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.standings--deck .standing {
+  grid-template-columns: 3rem minmax(0, 1fr) 4rem;
+}
+
+.standings--deck .standing__name {
+  font-size: 1.3125rem;
+}
+
+.standings--deck .standing__place,
+.standings--deck .standing__score {
+  font-size: 1.0625rem;
+}

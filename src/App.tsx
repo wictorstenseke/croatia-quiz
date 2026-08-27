@@ -3,6 +3,8 @@ import { questions } from './data/quiz'
 import { asset } from './lib/asset'
 import { useSlideNav } from './hooks/useSlideNav'
 import { useHost } from './hooks/useHost'
+import { usePlayers } from './hooks/usePlayers'
+import { leaderboard } from './lib/scoring'
 import { BONUS_QUESTION_ID, slideToSession } from './lib/session'
 import { Cover } from './slides/Cover'
 import { QuestionLayout } from './slides/QuestionLayout'
@@ -37,6 +39,7 @@ export default function App() {
   const photo = question ? question.part : nav.index === BONUS_INDEX ? BONUS_PHOTO : null
 
   const { isHost, publish } = useHost()
+  const players = usePlayers()
   const target = slideToSession(nav.index, false)
   const targetRevealed = target.questionId
     ? Boolean(revealed[target.questionId])
@@ -74,6 +77,7 @@ export default function App() {
 
       {nav.index === FACIT_INDEX && (
         <ResultSlide
+          standings={leaderboard(players)}
           onRestart={() => {
             setRevealed({})
             nav.go(0)
