@@ -1,8 +1,4 @@
-import { questions } from '../data/quiz'
-
-const BONUS_TARGET = 'zivjeli'
-/** Half the letters, rounded up: four of seven. */
-const BONUS_THRESHOLD = Math.ceil(BONUS_TARGET.length / 2)
+import { bonus, questions } from '../data/quiz'
 
 export interface PlayerRecord {
   name: string
@@ -24,6 +20,15 @@ export function normalise(value: string): string {
     .toLowerCase()
     .replace(/[^a-z]/g, '')
 }
+
+/**
+ * Read out of the quiz data rather than written down twice: a changed bonus
+ * answer must not leave the grading scoring the old word. `normalise('Živjeli!')`
+ * is `'zivjeli'`, so this is the same target it has always been.
+ */
+const BONUS_TARGET = normalise(bonus.answer)
+/** Half the letters, rounded up: four of seven. */
+const BONUS_THRESHOLD = Math.ceil(BONUS_TARGET.length / 2)
 
 /** Edit distance, carrying two rows instead of the whole matrix. */
 export function levenshtein(a: string, b: string): number {

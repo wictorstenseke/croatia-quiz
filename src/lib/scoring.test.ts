@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { questions } from '../data/quiz'
+import { bonus, questions } from '../data/quiz'
 import { bonusPoints, leaderboard, levenshtein, normalise, scoreFor } from './scoring'
 
 describe('normalise', () => {
@@ -49,6 +49,13 @@ describe('bonusPoints', () => {
     expect(bonusPoints('zivjelli')).toBe(1)
     // three edits away: exactly four of seven, the threshold
     expect(bonusPoints('zivj')).toBe(1)
+  })
+
+  it('grades against the answer in the quiz data, whatever it says', () => {
+    // The guard on the constant: change bonus.answer and this still holds,
+    // because the target is derived from it rather than written down twice.
+    expect(bonusPoints(bonus.answer)).toBe(2)
+    expect(normalise(bonus.answer)).toBe('zivjeli')
   })
 
   it('gives nothing below half', () => {
