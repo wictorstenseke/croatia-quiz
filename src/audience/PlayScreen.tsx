@@ -23,15 +23,7 @@ export function PlayScreen({
   onAnswer,
 }: PlayScreenProps) {
   if (session.phase === 'lobby') {
-    return (
-      <section className="audience">
-        <p className="micro">Hej {name}</p>
-        <h1 className="audience__title">Väntar på första frågan…</h1>
-        <p className="audience__lede">
-          {Object.keys(players).length} med i rummet. Håll telefonen framme.
-        </p>
-      </section>
-    )
+    return <Lobby name={name} uid={uid} players={players} />
   }
 
   if (session.phase === 'leaderboard') {
@@ -109,6 +101,38 @@ function optionState(
   if (letter === answer) return 'correct'
   if (letter === chosen) return 'wrong'
   return 'muted'
+}
+
+function Lobby({
+  name,
+  uid,
+  players,
+}: {
+  name: string
+  uid: string | null
+  players: Record<string, PlayerRecord>
+}) {
+  const roster = Object.entries(players)
+    .map(([playerUid, record]) => ({ uid: playerUid, name: record.name }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'sv'))
+
+  return (
+    <section className="audience">
+      <p className="micro">Hej {name}</p>
+      <h1 className="audience__title">Väntar på första frågan…</h1>
+      {roster.length > 0 ? (
+        <ul className="roster">
+          {roster.map((player) => (
+            <li className="roster__name" key={player.uid} data-you={player.uid === uid}>
+              {player.name}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="audience__lede">Du är först i rummet. Håll telefonen framme.</p>
+      )}
+    </section>
+  )
 }
 
 /**

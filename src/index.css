@@ -744,6 +744,32 @@ img {
   margin: 0;
 }
 
+/*
+ * Who else is in the room. Bounded and independently scrollable so a big
+ * group never pushes the title or the rest of the lobby off screen — the
+ * list grows inward, not the page.
+ */
+.roster {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.roster__name {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+.roster__name[data-you='true'] {
+  color: var(--ink);
+  font-weight: 500;
+}
+
 .audience__error {
   color: #9d2b2b;
 }
