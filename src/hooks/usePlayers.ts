@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { collection, onSnapshot } from 'firebase/firestore'
+import { collection, getDocs, onSnapshot, type QuerySnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { keepListenerAlive } from '../lib/resilientListener'
 import type { PlayerRecord } from '../lib/scoring'
 
 /**
@@ -19,13 +20,19 @@ export function usePlayers(enabled: boolean): Record<string, PlayerRecord> {
 
   useEffect(() => {
     if (!enabled) return
-    return onSnapshot(collection(db, 'players'), (snapshot) => {
+    const ref = collection(db, 'players')
+    function apply(snapshot: QuerySnapshot) {
       const next: Record<string, PlayerRecord> = {}
       for (const document of snapshot.docs) {
         const data = document.data() as { name: string; answers?: Record<string, string> }
         next[document.id] = { name: data.name, answers: data.answers ?? {} }
       }
       setPlayers(next)
+    }
+    return keepListenerAlive({
+      subscribe: (onNext, onError) => onSnapshot(ref, onNext, onError),
+      onNext: apply,
+      reconcile: () => getDocs(ref),
     })
   }, [enabled])
 
