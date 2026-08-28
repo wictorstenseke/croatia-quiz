@@ -740,8 +740,43 @@ img {
   color: #9d2b2b;
 }
 
+/* A near miss reads as progress, not failure — the muted ink, not the red. */
+.audience__verdict[data-correct='partial'] {
+  color: var(--ink-soft);
+}
+
 .audience__hint {
   margin: 0;
+}
+
+.audience__save {
+  justify-content: center;
+}
+
+/*
+ * Who else is in the room. Bounded and independently scrollable so a big
+ * group never pushes the title or the rest of the lobby off screen — the
+ * list grows inward, not the page.
+ */
+.roster {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.roster__name {
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+.roster__name[data-you='true'] {
+  color: var(--ink);
+  font-weight: 500;
 }
 
 .audience__error {
@@ -920,7 +955,49 @@ img {
   height: auto;
 }
 
+.join-code__link {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.join-code__url {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.8);
+  word-break: break-all;
+  cursor: text;
+  user-select: all;
+}
+
+.join-code__copy {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.94);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.join-code__copy:hover,
+.join-code__copy:focus-visible {
+  color: #fff;
+}
+
 .deck__reset {
+  /* The one irreversible control in the footer — pushed to the far side of
+     the row, away from the fullscreen toggle, so a mis-click mid-presentation
+     is less likely. The footer's own gap still separates it from whatever
+     ends up beside it on the right (the host notice, when that is showing). */
+  margin-left: auto;
   padding: 0;
   border: 0;
   background: none;
