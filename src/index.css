@@ -740,8 +740,17 @@ img {
   color: #9d2b2b;
 }
 
+/* A near miss reads as progress, not failure — the muted ink, not the red. */
+.audience__verdict[data-correct='partial'] {
+  color: var(--ink-soft);
+}
+
 .audience__hint {
   margin: 0;
+}
+
+.audience__save {
+  justify-content: center;
 }
 
 /*

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { bonus, questions, type Choice } from '../data/quiz'
 import { BONUS_QUESTION_ID, type LiveSession } from '../lib/session'
-import { leaderboard, type PlayerRecord, type Standing } from '../lib/scoring'
+import { bonusPoints, leaderboard, type PlayerRecord, type Standing } from '../lib/scoring'
 
 const LETTERS: Choice[] = ['A', 'B', 'C']
 
@@ -11,7 +11,7 @@ interface PlayScreenProps {
   uid: string | null
   answers: Record<string, string>
   players: Record<string, PlayerRecord>
-  onAnswer: (questionId: string, value: string) => void
+  onAnswer: (questionId: string, value: string) => Promise<void>
 }
 
 export function PlayScreen({
@@ -64,7 +64,9 @@ export function PlayScreen({
             <button
               type="button"
               className="option option--tappable"
-              onClick={() => onAnswer(question.id, letter)}
+              onClick={() => {
+                onAnswer(question.id, letter).catch(() => {})
+              }}
               disabled={session.revealed}
               aria-pressed={chosen === letter}
               data-state={optionState(letter, chosen, question.answer, session.revealed)}
@@ -143,6 +145,8 @@ function Lobby({
  */
 const BONUS_DEBOUNCE_MS = 300
 
+type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
 function BonusAnswer({
   value,
   revealed,
@@ -150,7 +154,7 @@ function BonusAnswer({
 }: {
   value: string
   revealed: boolean
-  onAnswer: (value: string) => void
+  onAnswer: (value: string) => Promise<void>
 }) {
   // What the person is typing, held locally so every keystroke paints at once
   // without a write behind it. `sent` is the last value we handed to onAnswer,
@@ -159,6 +163,10 @@ function BonusAnswer({
   // is adopted here, in render, before the stale draft can paint.
   const [draft, setDraft] = useState(value)
   const [sent, setSent] = useState(value)
+  // Only the explicit "Spara svar" button drives this — the debounced autosave
+  // stays invisible by design, so it must never claim a save this state didn't
+  // itself request.
+  const [saveState, setSaveState] = useState<SaveState>('idle')
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const flush = useRef<() => void>(() => {})
 
@@ -174,7 +182,9 @@ function BonusAnswer({
       if (!timer.current) return
       clearTimeout(timer.current)
       timer.current = null
-      onAnswer(draft)
+      const next = draft
+      setSent(next)
+      onAnswer(next).catch(() => {})
     }
   })
 
@@ -186,15 +196,38 @@ function BonusAnswer({
     return () => flush.current()
   }, [])
 
+  // The presenter can reveal mid-keystroke, before the debounce has fired.
+  // Flush immediately so the score shown below is graded on what was actually
+  // typed, not on whatever happened to be saved a moment earlier.
+  useEffect(() => {
+    if (revealed) flush.current()
+  }, [revealed])
+
   function onType(next: string) {
     setDraft(next)
+    setSaveState('idle')
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       timer.current = null
       setSent(next)
-      onAnswer(next)
+      onAnswer(next).catch(() => {})
     }, BONUS_DEBOUNCE_MS)
   }
+
+  function handleSave() {
+    if (timer.current) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+    const toSave = draft
+    setSent(toSave)
+    setSaveState('saving')
+    onAnswer(toSave)
+      .then(() => setSaveState('saved'))
+      .catch(() => setSaveState('error'))
+  }
+
+  const points = bonusPoints(value)
 
   return (
     <section className="audience">
@@ -211,15 +244,47 @@ function BonusAnswer({
         disabled={revealed}
       />
 
+      {!revealed && (
+        <button type="button" className="btn btn--ghost audience__save" onClick={handleSave}>
+          {saveLabel(saveState)}
+        </button>
+      )}
+
       {revealed ? (
-        <p className="audience__verdict" data-correct={true}>
-          Rätt svar: {bonus.answer}
-        </p>
+        <>
+          <p className="audience__verdict" data-correct={verdictTone(points)}>
+            {verdictLabel(points)}
+          </p>
+          <p className="micro audience__hint">Rätt svar: {bonus.answer}</p>
+        </>
       ) : (
         <p className="micro audience__hint">Hälften rätt ger 1 poäng, allt rätt ger 2</p>
       )}
     </section>
   )
+}
+
+function saveLabel(state: SaveState): string {
+  if (state === 'saving') return 'Sparar…'
+  if (state === 'saved') return 'Sparat'
+  if (state === 'error') return 'Kunde inte spara — försök igen'
+  return 'Spara svar'
+}
+
+/**
+ * Edit distance rather than a right/wrong split, so the wording has to carry
+ * three outcomes instead of two: full marks, a genuine near miss, and nothing.
+ */
+function verdictTone(points: 0 | 1 | 2): 'true' | 'partial' | 'false' {
+  if (points === 2) return 'true'
+  if (points === 1) return 'partial'
+  return 'false'
+}
+
+function verdictLabel(points: 0 | 1 | 2): string {
+  if (points === 2) return `Helt rätt · ${points} poäng`
+  if (points === 1) return `Nära nog · ${points} poäng`
+  return 'Inga poäng den här gången'
 }
 
 function Standings({ standings, uid }: { standings: Standing[]; uid: string | null }) {

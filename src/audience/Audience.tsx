@@ -33,14 +33,20 @@ export function Audience() {
   // rules; the SDK drops the mutation from the pending queue and a second
   // snapshot reverts it on its own. That revert is correct and must stand —
   // this only explains it instead of leaving the tap to vanish unexplained.
-  function handleAnswer(questionId: string, value: string) {
+  //
+  // Rethrown after the notice is set, rather than swallowed: the bonus save
+  // button awaits this same call and needs to know a write was refused rather
+  // than assume it landed. Callers that fire-and-forget already attach their
+  // own no-op .catch.
+  function handleAnswer(questionId: string, value: string): Promise<void> {
     setAnswerNotice(null)
-    answer(questionId, value).catch((error: unknown) => {
+    return answer(questionId, value).catch((error: unknown) => {
       setAnswerNotice(
         isPermissionDenied(error)
           ? 'Svaret hann stänga.'
           : 'Ingen kontakt med servern. Svaret sparades inte.',
       )
+      throw error
     })
   }
 
