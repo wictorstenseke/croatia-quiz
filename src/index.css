@@ -957,7 +957,9 @@ img {
   display: grid;
   gap: 0.75rem;
   justify-items: center;
-  width: clamp(140px, 14vw, 200px);
+  /* Scannable from the back of the room: a third wider than it was, now that
+     nothing but the copy link sits under it. */
+  width: clamp(182px, 18vw, 260px);
 }
 
 .join-code__panel {
@@ -971,24 +973,6 @@ img {
   display: block;
   width: 100%;
   height: auto;
-}
-
-.join-code__link {
-  display: grid;
-  gap: 0.35rem;
-  justify-items: center;
-  text-align: center;
-}
-
-.join-code__url {
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  line-height: 1.4;
-  letter-spacing: 0.01em;
-  color: rgba(255, 255, 255, 0.8);
-  word-break: break-all;
-  cursor: text;
-  user-select: all;
 }
 
 .join-code__copy {
