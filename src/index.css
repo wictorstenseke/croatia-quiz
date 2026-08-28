@@ -920,6 +920,43 @@ img {
   height: auto;
 }
 
+.join-code__link {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.join-code__url {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.8);
+  word-break: break-all;
+  cursor: text;
+  user-select: all;
+}
+
+.join-code__copy {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.94);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.join-code__copy:hover,
+.join-code__copy:focus-visible {
+  color: #fff;
+}
+
 .deck__reset {
   padding: 0;
   border: 0;
