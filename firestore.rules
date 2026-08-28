@@ -1,0 +1,94 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function live() {
+      return get(/databases/$(database)/documents/session/live).data;
+    }
+
+    function hostKey() {
+      return get(/databases/$(database)/documents/control/secret).data.key;
+    }
+
+    function isHost() {
+      let host = get(/databases/$(database)/documents/control/host);
+      return request.auth != null && host != null && host.data.uid == request.auth.uid;
+    }
+
+    function validName(name) {
+      return name is string && name.size() >= 1 && name.size() <= 40;
+    }
+
+    function changedFields() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function isNameEdit() {
+      return changedFields().hasOnly(['name'])
+        && validName(request.resource.data.name);
+    }
+
+    // The phase check comes first on purpose: outside the question phase
+    // questionId is null, and && short-circuits before anything looks it up.
+    function isAnswerForOpenQuestion() {
+      let session = live();
+      let answers = request.resource.data.answers;
+      return session.phase == 'question'
+        && session.revealed == false
+        && changedFields().hasOnly(['answers'])
+        && answers.diff(resource.data.answers).affectedKeys().hasOnly([session.questionId])
+        && session.questionId in answers
+        && answers[session.questionId] is string
+        && answers[session.questionId].size() <= 60;
+    }
+
+    // Nothing under /control is readable or writable by a client: rules are
+    // default-deny, so the absence of a grant is the rule. The two matches
+    // below are the only grants that exist for anything under /control.
+
+    // The secret is planted out of band, once, before the app goes live.
+    // No client may ever create, update, or delete it.
+    match /control/secret {
+      allow create: if false;
+    }
+
+    // Taking the host seat requires the key, and the key must carry real
+    // entropy — a short key would make guess-and-check through the rules
+    // engine feasible.
+    match /control/host {
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid', 'key'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.key is string
+        && request.resource.data.key.size() >= 32
+        && request.resource.data.key == hostKey();
+    }
+
+    match /session/live {
+      allow read: if true;
+      allow create, update: if isHost()
+        && request.resource.data.keys().hasOnly(['phase', 'questionId', 'revealed', 'updatedAt'])
+        && request.resource.data.phase in ['lobby', 'question', 'leaderboard']
+        && request.resource.data.revealed is bool;
+      allow delete: if false;
+    }
+
+    match /players/{uid} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'answers', 'joinedAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.answers.keys().size() == 0
+        && request.resource.data.joinedAt == request.time;
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && (isNameEdit() || isAnswerForOpenQuestion());
+
+      allow delete: if isHost();
+    }
+  }
+}

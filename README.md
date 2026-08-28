@@ -28,6 +28,32 @@ npm run build    # produktionsbygge till dist/
   `#/facit`). Vilka svar som är avslöjade lever i minnet och nollställs vid
   omladdning.
 
+## Värdnyckeln
+
+Presentatören öppnar däcket med nyckeln i adressen (`?host=…`). Appen loggar in
+anonymt och skriver sin uid till `control/host`; säkerhetsreglerna släpper
+igenom den skrivningen bara om nyckeln stämmer mot `control/secret`, en post
+ingen klient får läsa. Nyckeln finns aldrig i paketet — den lever i adressfältet
+och i `.host-key` lokalt, som git ignorerar.
+
+`control/secret` är stängd i reglerna: `allow create: if false`. Det går alltså
+inte att plantera eller byta nyckel från appen, och
+`scripts/bootstrap-secret.mjs` misslyckas om det körs rakt av. Att sätta en ny
+nyckel görs för hand, i den här ordningen:
+
+1. Firebase Console → Firestore: ta bort `control/secret` om den finns. Ta bort
+   `control/host` samtidigt — en nyckelrotation kastar annars inte ut den som
+   redan sitter på värdplatsen, eftersom reglerna bara jämför uid:t där.
+2. Öppna dörren tillfälligt i `firestore.rules`:
+   `match /control/secret { allow create: if true; }` och deploya:
+   `npx firebase-tools deploy --only firestore:rules`.
+3. `node scripts/bootstrap-secret.mjs` — skriver nyckeln och skriver ut den en
+   gång. Spara den direkt; den går inte att läsa tillbaka.
+4. Ställ tillbaka regeln till `allow create: if false;` och deploya igen.
+
+Steg 2–4 ska ske i en följd. Så länge dörren står öppen kan vem som helst med
+projekt-id:t hinna före och skriva sin egen nyckel.
+
 ## Struktur
 
 ```

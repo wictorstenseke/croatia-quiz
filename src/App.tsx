@@ -1,7 +1,11 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { questions } from './data/quiz'
 import { asset } from './lib/asset'
 import { useSlideNav } from './hooks/useSlideNav'
+import { useHost, type HostStatus } from './hooks/useHost'
+import { usePlayers } from './hooks/usePlayers'
+import { leaderboard } from './lib/scoring'
+import { BONUS_QUESTION_ID, slideToSession } from './lib/session'
 import { Cover } from './slides/Cover'
 import { QuestionLayout } from './slides/QuestionLayout'
 import { QuestionSlide } from './slides/QuestionSlide'
@@ -20,11 +24,19 @@ const BONUS_PHOTO = {
   caption: 'Adriatiska havet · Två poäng kvar att ta',
 }
 
-/** Which answers the presenter has uncovered, keyed by question id (bonus is "B"). */
+/** Which answers the presenter has uncovered, keyed by question id (bonus uses BONUS_QUESTION_ID). */
 type Revealed = Record<string, true>
+
+/** What the presenter is told when the deck is not driving the room. */
+function hostNoticeFor(status: HostStatus): string | null {
+  if (status === 'refused') return 'Värdnyckeln gick inte igenom — telefonerna följer inte däcket'
+  if (status === 'lost') return 'Värdplatsen är tagen av en annan flik — telefonerna följer inte däcket'
+  return null
+}
 
 export default function App() {
   const nav = useSlideNav(TOTAL_SLIDES)
+  const { go } = nav
   const [revealed, setRevealed] = useState<Revealed>({})
 
   const reveal = useCallback((id: string) => {
@@ -34,9 +46,45 @@ export default function App() {
   const question = nav.index >= 1 && nav.index <= questions.length ? questions[nav.index - 1] : null
   const photo = question ? question.part : nav.index === BONUS_INDEX ? BONUS_PHOTO : null
 
+  const { isHost, status, publish, clearRound } = useHost()
+  const target = slideToSession(nav.index, false)
+  // The roster is only on screen on the facit slide. Subscribing earlier turns
+  // every answer from every phone into a read here too, for no visible gain.
+  const players = usePlayers(target.phase === 'leaderboard')
+  const targetRevealed = target.questionId
+    ? Boolean(revealed[target.questionId])
+    : target.revealed
+
+  useEffect(() => {
+    if (!isHost) return
+    publish(slideToSession(nav.index, targetRevealed))
+  }, [isHost, nav.index, targetRevealed, publish])
+
+  /**
+   * One reset, whole. Clearing the players without clearing `revealed` and the
+   * slide index left the deck republishing `revealed: true` for every question
+   * the moment the presenter walked back — a fresh round already open to the
+   * audience. Both reset buttons run this.
+   */
+  const resetRound = useCallback(async () => {
+    try {
+      return await clearRound()
+    } finally {
+      // In a finally: a refused delete must not leave the deck sitting on a
+      // stale slide with the old reveals still armed.
+      setRevealed({})
+      go(0)
+    }
+  }, [clearRound, go])
+
+  // The facit button has nowhere to report a failure — the footer reset does.
+  const restart = useCallback(() => {
+    resetRound().catch(() => undefined)
+  }, [resetRound])
+
   return (
-    <Deck nav={nav}>
-      {nav.index === 0 && <Cover onStart={nav.next} />}
+    <Deck nav={nav} isHost={isHost} onClearRound={resetRound} hostNotice={hostNoticeFor(status)}>
+      {nav.index === 0 && <Cover onStart={nav.next} showJoinCode={isHost} />}
 
       {photo && (
         <QuestionLayout image={photo.image} caption={photo.caption}>
@@ -51,8 +99,8 @@ export default function App() {
             />
           ) : (
             <BonusSlide
-              revealed={Boolean(revealed.B)}
-              onReveal={() => reveal('B')}
+              revealed={Boolean(revealed[BONUS_QUESTION_ID])}
+              onReveal={() => reveal(BONUS_QUESTION_ID)}
               onNext={nav.next}
             />
           )}
@@ -60,12 +108,7 @@ export default function App() {
       )}
 
       {nav.index === FACIT_INDEX && (
-        <ResultSlide
-          onRestart={() => {
-            setRevealed({})
-            nav.go(0)
-          }}
-        />
+        <ResultSlide standings={leaderboard(players)} onRestart={restart} />
       )}
     </Deck>
   )

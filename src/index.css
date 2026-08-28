@@ -127,8 +127,16 @@ img {
   letter-spacing: 0;
 }
 
-.deck[data-cover='true'] .deck__footer {
+/* The cover hides the footer — unless it is carrying something the presenter
+   has to see (a lost host seat, a reset that did not go through). A reset now
+   ends on the cover, so hiding it there unconditionally would swallow its own
+   report. */
+.deck[data-cover='true'] .deck__footer[data-alert='false'] {
+  /* opacity alone still leaves the buttons hit-testable — pointer-events: auto
+     on .deck__fullscreen/.deck__reset would resurrect them under an invisible
+     click. visibility: hidden removes descendants from hit-testing outright. */
   opacity: 0;
+  visibility: hidden;
 }
 
 /* ── Edge navigation ────────────────────────────────────────── */
@@ -635,6 +643,192 @@ img {
   justify-self: start;
 }
 
+/* ── Publikvyn ──────────────────────────────────────────────── */
+
+.audience {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100dvh;
+  padding: clamp(1.5rem, 6vw, 3rem);
+  justify-content: center;
+}
+
+.audience--join {
+  justify-content: center;
+}
+
+.audience__title {
+  margin: 0;
+  font-size: clamp(2rem, 9vw, 3rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.audience__question {
+  margin: 0;
+  font-size: clamp(1.5rem, 6.5vw, 2.25rem);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.audience__lede {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.audience__form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.audience__input {
+  width: 100%;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--rule);
+  background: var(--field);
+  font-size: 1.25rem;
+}
+
+.audience__input:focus {
+  outline: none;
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+/* The audience taps its options; the deck's are only ever read. */
+.option--tappable {
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.option--tappable:disabled {
+  cursor: default;
+}
+
+.option[data-state='selected'] {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+.option[data-state='wrong'] {
+  border-color: #9d2b2b;
+  background: #f8eeee;
+}
+
+.option[data-state='wrong'] .option__label,
+.option[data-state='wrong'] .option__letter {
+  color: #9d2b2b;
+}
+
+.audience__verdict {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--correct);
+}
+
+.audience__verdict[data-correct='false'] {
+  color: #9d2b2b;
+}
+
+.audience__hint {
+  margin: 0;
+}
+
+.audience__error {
+  color: #9d2b2b;
+}
+
+.audience__retry {
+  margin-left: 0.6rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/*
+ * A near-miss, not a failure: the write was refused and Firestore already
+ * reverted the tap on its own, so this only explains the revert. Floats near
+ * the bottom of the screen — close to the alternatives in this centered,
+ * mobile-first layout — rather than shifting any of the audience's content.
+ */
+.audience__notice {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(1.25rem, 5vw, 2.5rem);
+  transform: translateX(-50%);
+  z-index: 1;
+  margin: 0;
+  max-width: calc(100% - 2 * clamp(1.5rem, 6vw, 3rem));
+  padding: 0.7rem 1.15rem;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--muted);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  animation: rise 0.3s var(--ease) both;
+}
+
+.standings {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--ink);
+}
+
+.standing {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 3rem;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.standing[data-you='true'] {
+  font-weight: 500;
+}
+
+.standing__place,
+.standing__score {
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.standing[data-you='true'] .standing__place,
+.standing[data-you='true'] .standing__score {
+  color: var(--ink);
+}
+
+.standing__name {
+  font-size: 1.125rem;
+}
+
+.standing__score {
+  text-align: right;
+}
+
 /* ── Narrow screens ─────────────────────────────────────────── */
 
 @media (max-width: 900px) {
@@ -683,4 +877,72 @@ img {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.deck-standings {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.standings--deck .standing {
+  grid-template-columns: 3rem minmax(0, 1fr) 4rem;
+}
+
+.standings--deck .standing__name {
+  font-size: 1.3125rem;
+}
+
+.standings--deck .standing__place,
+.standings--deck .standing__score {
+  font-size: 1.0625rem;
+}
+
+.join-code {
+  position: absolute;
+  right: var(--gutter);
+  bottom: calc(var(--gutter) * 0.75);
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  width: clamp(140px, 14vw, 200px);
+}
+
+.join-code__panel {
+  width: 100%;
+  padding: 0.7rem;
+  background: var(--paper);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.join-code__svg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.deck__reset {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.3s var(--ease), color 0.3s var(--ease);
+}
+
+.deck:hover .deck__reset,
+.deck__reset:focus-visible {
+  opacity: 1;
+}
+
+.deck__reset[data-confirming='true'],
+.deck__reset[data-reset-issue='true'] {
+  opacity: 1;
+  color: #9d2b2b;
+}
+
+/* The projector keeps moving whether or not the phones still follow, so this
+   one stays visible without a hover. */
+.deck__host-notice {
+  color: #9d2b2b;
 }

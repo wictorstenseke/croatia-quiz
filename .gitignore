@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# The host key lives in the presenter's URL, never on disk
+.host-key
