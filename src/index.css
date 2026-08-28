@@ -993,6 +993,11 @@ img {
 }
 
 .deck__reset {
+  /* The one irreversible control in the footer — pushed to the far side of
+     the row, away from the fullscreen toggle, so a mis-click mid-presentation
+     is less likely. The footer's own gap still separates it from whatever
+     ends up beside it on the right (the host notice, when that is showing). */
+  margin-left: auto;
   padding: 0;
   border: 0;
   background: none;
