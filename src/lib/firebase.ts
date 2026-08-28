@@ -1,11 +1,33 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore, type FirestoreSettings } from 'firebase/firestore'
 import config from './firebase-config.json'
 
 const app = initializeApp(config)
 
-export const db = getFirestore(app)
+/**
+ * Long polling, not the default bidirectional stream.
+ *
+ * By default the SDK holds a single long-lived `fetch()` response open for the
+ * Listen stream. WebKit leaves that response open but silently dead after the
+ * radio drops for a moment — a screen lock, wifi handing over to cellular, a
+ * lift going down. No bytes arrive and no error is raised, so the SDK sees a
+ * healthy stream, never restarts it, and never tells the listener anything: the
+ * phone sits on whichever question was on screen when the connection died, and
+ * only a reload brings it back. Firestore has shipped this transport, withdrawn
+ * it twice for “hanging and incomplete queries”, and shipped it again; the
+ * reports against the current release are still open. Long polling makes every
+ * round trip a discrete request that fails loudly and is retried.
+ *
+ * `useFetchStreams` is not part of the public settings type. It is read at
+ * runtime all the same, and it is what keeps the write stream off fetch too.
+ */
+const TRANSPORT = {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+} as FirestoreSettings
+
+export const db = initializeFirestore(app, TRANSPORT)
 export const auth = getAuth(app)
 
 /**

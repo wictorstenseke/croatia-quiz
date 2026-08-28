@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { collection, getDocs, onSnapshot, type QuerySnapshot } from 'firebase/firestore'
+import { collection, onSnapshot, type QuerySnapshot } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { keepListenerAlive } from '../lib/resilientListener'
 import type { PlayerRecord } from '../lib/scoring'
@@ -32,7 +32,6 @@ export function usePlayers(enabled: boolean): Record<string, PlayerRecord> {
     return keepListenerAlive({
       subscribe: (onNext, onError) => onSnapshot(ref, onNext, onError),
       onNext: apply,
-      reconcile: () => getDocs(ref),
     })
   }, [enabled])
 

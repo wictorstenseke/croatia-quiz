@@ -108,7 +108,6 @@ export function usePlayer(): PlayerHandle {
     return keepListenerAlive({
       subscribe: (onNext, onError) => onSnapshot(ref, onNext, onError),
       onNext: apply,
-      reconcile: () => getDoc(ref),
     })
   }, [uid])
 

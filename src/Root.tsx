@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import App from './App'
 import { Audience } from './audience/Audience'
+import { startConnectionWatchdog } from './lib/connection'
 
 const AUDIENCE_HASH = '#/spela'
 
@@ -16,6 +17,10 @@ export function Root() {
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  // One watchdog for the whole app, deck and phone alike — a projector on
+  // venue wifi loses its connection the same way a phone does.
+  useEffect(() => startConnectionWatchdog(), [])
 
   return audience ? <Audience /> : <App />
 }
