@@ -7,6 +7,8 @@
   --rule: #cfcfcf;
   --correct: #145c3a;
   --correct-bg: #e8f1ec;
+  --wrong: #9d2b2b;
+  --wrong-bg: #f8eeee;
 
   --sans: 'Satoshi', 'Helvetica Neue', Helvetica, sans-serif;
   --mono: 'Roboto Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -728,13 +730,13 @@ img {
 }
 
 .option[data-state='wrong'] {
-  border-color: #9d2b2b;
-  background: #f8eeee;
+  border-color: var(--wrong);
+  background: var(--wrong-bg);
 }
 
 .option[data-state='wrong'] .option__label,
 .option[data-state='wrong'] .option__letter {
-  color: #9d2b2b;
+  color: var(--wrong);
 }
 
 .audience__verdict {
@@ -747,7 +749,7 @@ img {
 }
 
 .audience__verdict[data-correct='false'] {
-  color: #9d2b2b;
+  color: var(--wrong);
 }
 
 /* A near miss reads as progress, not failure — the muted ink, not the red. */
@@ -790,7 +792,7 @@ img {
 }
 
 .audience__error {
-  color: #9d2b2b;
+  color: var(--wrong);
 }
 
 .audience__retry {
@@ -1031,11 +1033,140 @@ img {
 .deck__reset[data-confirming='true'],
 .deck__reset[data-reset-issue='true'] {
   opacity: 1;
-  color: #9d2b2b;
+  color: var(--wrong);
 }
 
 /* The projector keeps moving whether or not the phones still follow, so this
    one stays visible without a hover. */
 .deck__host-notice {
-  color: #9d2b2b;
+  color: var(--wrong);
+}
+
+/* ── Answer recap on the phone ──────────────────────────────── */
+
+/* Only visible to a screen reader: the tick and the cross carry the verdict
+   and are drawn in CSS, so the word has to live somewhere reachable. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The standings plus sixteen rows never fit a phone — start at the top and
+   let the page scroll instead of centring a column taller than the screen. */
+.audience--scroll {
+  justify-content: flex-start;
+  padding-bottom: clamp(2.5rem, 10vw, 4rem);
+}
+
+.review {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.review__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 0.6rem;
+}
+
+.review__title {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.review__total {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+}
+
+.review__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review__row {
+  display: grid;
+  grid-template-columns: 1.75rem 1.25rem minmax(0, 1fr);
+  gap: 0.35rem 0.6rem;
+  align-items: baseline;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.review__nr,
+.review__letter {
+  font-family: var(--mono);
+}
+
+.review__nr {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.review__mark::before {
+  font-family: var(--mono);
+  font-size: 0.9375rem;
+}
+
+.review__mark[data-mark='Rätt']::before {
+  content: '✓';
+  color: var(--correct);
+}
+
+.review__mark[data-mark='Fel']::before {
+  content: '✗';
+  color: var(--wrong);
+}
+
+/* A near miss on the bonus is neither, and the red would overstate it. */
+.review__mark[data-mark='Nära']::before {
+  content: '~';
+  color: var(--ink-soft);
+}
+
+.review__mine {
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.review__row[data-ok='true'] .review__mine {
+  color: var(--correct);
+}
+
+.review__blank {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.review__points {
+  margin-left: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* Under the pick it belongs to, in the same column, so the eye reads the pair
+   top to bottom instead of hunting across the row. */
+.review__correct {
+  grid-column: 3;
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
 }

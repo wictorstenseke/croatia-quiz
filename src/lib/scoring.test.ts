@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { bonus, questions } from '../data/quiz'
-import { bonusPoints, leaderboard, levenshtein, normalise, scoreFor } from './scoring'
+import {
+  bonusPoints,
+  leaderboard,
+  levenshtein,
+  normalise,
+  reviewRows,
+  scoreFor,
+} from './scoring'
 
 describe('normalise', () => {
   it('folds away case, accents and punctuation', () => {
@@ -110,5 +117,51 @@ describe('leaderboard', () => {
 
   it('is empty when nobody has joined', () => {
     expect(leaderboard({})).toEqual([])
+  })
+})
+
+describe('reviewRows', () => {
+  it('gives one row per question, in the order they were asked', () => {
+    const rows = reviewRows({})
+    expect(rows).toHaveLength(questions.length)
+    expect(rows.map((row) => row.id)).toEqual(questions.map((q) => q.id))
+  })
+
+  it('carries the picked letter and its wording on a correct answer', () => {
+    const [row] = reviewRows({ '01': 'B' })
+    expect(row).toMatchObject({
+      id: '01',
+      mine: 'B',
+      mineLabel: 'Kroatien',
+      correct: 'B',
+      correctLabel: 'Kroatien',
+      ok: true,
+    })
+  })
+
+  it('keeps both sides on a wrong answer', () => {
+    const [row] = reviewRows({ '01': 'A' })
+    expect(row).toMatchObject({
+      mine: 'A',
+      mineLabel: 'Slovenien',
+      correct: 'B',
+      correctLabel: 'Kroatien',
+      ok: false,
+    })
+  })
+
+  it('reports an unanswered question as nothing picked', () => {
+    const [row] = reviewRows({ '02': 'C' })
+    expect(row).toMatchObject({ id: '01', mine: null, mineLabel: null, ok: false })
+  })
+
+  it('treats a letter outside A–C as nothing picked', () => {
+    const [row] = reviewRows({ '01': 'Z' })
+    expect(row).toMatchObject({ mine: null, mineLabel: null, ok: false })
+  })
+
+  it('leaves the bonus out — it is answered in words, not letters', () => {
+    const rows = reviewRows({ bonus: 'Živjeli' })
+    expect(rows.some((row) => row.id === 'bonus')).toBe(false)
   })
 })

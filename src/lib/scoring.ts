@@ -1,4 +1,4 @@
-import { bonus, questions } from '../data/quiz'
+import { bonus, questions, type Choice } from '../data/quiz'
 
 export interface PlayerRecord {
   name: string
@@ -85,5 +85,42 @@ export function leaderboard(players: Record<string, PlayerRecord>): Standing[] {
       previousScore = entry.score
     }
     return { ...entry, place }
+  })
+}
+
+export interface ReviewRow {
+  id: string
+  /** The letter this player picked, or null when nothing valid was recorded. */
+  mine: Choice | null
+  /** The wording behind `mine`, so a letter alone never has to carry the recap. */
+  mineLabel: string | null
+  correct: Choice
+  correctLabel: string
+  ok: boolean
+}
+
+const CHOICES: Choice[] = ['A', 'B', 'C']
+
+function asChoice(value: string | undefined): Choice | null {
+  return CHOICES.find((letter) => letter === value) ?? null
+}
+
+/**
+ * One row per question for the recap on the audience's own phone: what they
+ * picked against what was right. The bonus is left out — it is answered in
+ * words and graded on distance, so it needs a shape of its own rather than a
+ * letter pair bent to fit.
+ */
+export function reviewRows(answers: Record<string, string>): ReviewRow[] {
+  return questions.map((question) => {
+    const mine = asChoice(answers[question.id])
+    return {
+      id: question.id,
+      mine,
+      mineLabel: mine ? question.options[mine] : null,
+      correct: question.answer,
+      correctLabel: question.options[question.answer],
+      ok: mine === question.answer,
+    }
   })
 }

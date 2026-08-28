@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { bonus, questions, type Choice } from '../data/quiz'
 import { BONUS_QUESTION_ID, type LiveSession } from '../lib/session'
 import { bonusPoints, leaderboard, type PlayerRecord, type Standing } from '../lib/scoring'
+import { AnswerReview } from './AnswerReview'
 
 const LETTERS: Choice[] = ['A', 'B', 'C']
 
@@ -27,7 +28,9 @@ export function PlayScreen({
   }
 
   if (session.phase === 'leaderboard') {
-    return <Standings standings={leaderboard(players)} uid={uid} />
+    return (
+      <Standings standings={leaderboard(players)} uid={uid} name={name} answers={answers} />
+    )
   }
 
   if (session.questionId === BONUS_QUESTION_ID) {
@@ -287,9 +290,21 @@ function verdictLabel(points: 0 | 1 | 2): string {
   return 'Inga poäng den här gången'
 }
 
-function Standings({ standings, uid }: { standings: Standing[]; uid: string | null }) {
+function Standings({
+  standings,
+  uid,
+  name,
+  answers,
+}: {
+  standings: Standing[]
+  uid: string | null
+  name: string
+  answers: Record<string, string>
+}) {
   return (
-    <section className="audience">
+    // The recap below runs past the fold on any phone, so this screen scrolls
+    // from the top rather than centring what no longer fits.
+    <section className="audience audience--scroll">
       <p className="micro">Facit</p>
       <h1 className="audience__title">Topplistan</h1>
 
@@ -302,6 +317,8 @@ function Standings({ standings, uid }: { standings: Standing[]; uid: string | nu
           </li>
         ))}
       </ol>
+
+      <AnswerReview name={name} answers={answers} />
     </section>
   )
 }
