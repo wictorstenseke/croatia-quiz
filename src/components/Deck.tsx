@@ -10,6 +10,8 @@ interface DeckProps {
   onClearRound?: () => Promise<number>
   /** Swedish line shown when the deck is no longer driving the room. */
   hostNotice?: string | null
+  /** True on slides with the two-column layout (a full-bleed photo on the right) — the footer must not spread over it. */
+  hasPhotoColumn?: boolean
 }
 
 /** How long an armed confirm stays armed before it quietly disarms itself. */
@@ -26,7 +28,14 @@ interface ResetIssue {
  * The frame every slide lives in: edge navigation, progress rail and the
  * position counter. The slides animate their own contents.
  */
-export function Deck({ nav, children, isHost = false, onClearRound, hostNotice }: DeckProps) {
+export function Deck({
+  nav,
+  children,
+  isHost = false,
+  onClearRound,
+  hostNotice,
+  hasPhotoColumn = false,
+}: DeckProps) {
   const progress = nav.index / (nav.total - 1)
   const { isFullscreen, toggle } = useFullscreen()
   const [armedIndex, setArmedIndex] = useState<number | null>(null)
@@ -76,7 +85,12 @@ export function Deck({ nav, children, isHost = false, onClearRound, hostNotice }
   const showsAlert = Boolean(hostNotice) || resetIssue !== null || confirming
 
   return (
-    <div className="deck" data-direction={nav.direction} data-cover={nav.index === 0}>
+    <div
+      className="deck"
+      data-direction={nav.direction}
+      data-cover={nav.index === 0}
+      data-photo-column={hasPhotoColumn}
+    >
       <div className="deck__rail" aria-hidden="true">
         <span className="deck__rail-fill" style={{ transform: `scaleX(${progress})` }} />
       </div>
