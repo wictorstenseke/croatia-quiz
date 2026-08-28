@@ -13,6 +13,7 @@
 
   --gutter: clamp(1.75rem, 4.5vw, 5rem);
   --question-size: clamp(1.75rem, 2.9vw, 3.125rem);
+  --photo-w: clamp(320px, 44vw, 900px);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   color-scheme: light;
@@ -92,6 +93,15 @@ img {
   padding: 0 var(--gutter) 1.4rem;
   pointer-events: none;
   z-index: 30;
+}
+
+/* Slides with the photo column (the question grid) put a full-bleed photo in
+   the right --photo-w of the viewport. The footer is otherwise full width,
+   which would sit the reset control on top of that photo — so on those
+   slides only, stop the footer's right edge at the same boundary the grid
+   uses, keeping both controls inside the text column. */
+.deck[data-photo-column='true'] .deck__footer {
+  right: var(--photo-w);
 }
 
 .deck__fullscreen {
@@ -389,7 +399,7 @@ img {
 
 .question {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(320px, 44vw, 900px);
+  grid-template-columns: minmax(0, 1fr) var(--photo-w);
   min-height: 100%;
 }
 
@@ -869,6 +879,12 @@ img {
 @media (max-width: 900px) {
   .question {
     grid-template-columns: 1fr;
+  }
+
+  /* The photo moves above the text at this width instead of sitting beside
+     it, so the footer no longer overlaps it — let it span full width again. */
+  .deck[data-photo-column='true'] .deck__footer {
+    right: 0;
   }
 
   .question__column {

@@ -7,8 +7,10 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  type DocumentSnapshot,
 } from 'firebase/firestore'
 import { db, ensureSignedIn } from '../lib/firebase'
+import { keepListenerAlive } from '../lib/resilientListener'
 
 const STORAGE_KEY = 'croatia-quiz.player'
 
@@ -86,7 +88,8 @@ export function usePlayer(): PlayerHandle {
 
   useEffect(() => {
     if (!uid) return
-    return onSnapshot(doc(db, 'players', uid), (snapshot) => {
+    const ref = doc(db, 'players', uid)
+    function apply(snapshot: DocumentSnapshot) {
       if (!snapshot.exists()) {
         // The host cleared the round: drop the name so the phone falls back to
         // the join screen and writes a fresh record. Guarded on fromCache —
@@ -101,6 +104,11 @@ export function usePlayer(): PlayerHandle {
       const next = { name: data.name, answers: data.answers ?? {} }
       setPlayer(next)
       writeStored(next)
+    }
+    return keepListenerAlive({
+      subscribe: (onNext, onError) => onSnapshot(ref, onNext, onError),
+      onNext: apply,
+      reconcile: () => getDoc(ref),
     })
   }, [uid])
 

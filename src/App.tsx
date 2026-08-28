@@ -83,7 +83,13 @@ export default function App() {
   }, [resetRound])
 
   return (
-    <Deck nav={nav} isHost={isHost} onClearRound={resetRound} hostNotice={hostNoticeFor(status)}>
+    <Deck
+      nav={nav}
+      isHost={isHost}
+      onClearRound={resetRound}
+      hostNotice={hostNoticeFor(status)}
+      hasPhotoColumn={Boolean(photo)}
+    >
       {nav.index === 0 && <Cover onStart={nav.next} showJoinCode={isHost} />}
 
       {photo && (
